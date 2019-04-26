@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Go Websocket</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        client = new Paho.MQTT.Client("127.0.01", 6060, "");
+        // set callback handlers
+client.onConnectionLost = onConnectionLost;
+client.onMessageArrived = onMessageArrived;
+
+// connect the client
+client.connect({onSuccess:onConnect});
+
+// called when the client connects
+function onConnect() {
+  // Once a connection has been made, make a subscription and send a message.
+  console.log("onConnect");
+  // payload = JSON.stringify({"topic":"dev18.*.india.*.*.*.gagan.*","type":"rw"});
+  //  message = new Paho.MQTT.Message(payload);
+  //  message.destinationName = "trace/keygen";
+  //  client.send(message);
+  //  payload = JSON.stringify({"topic":"dev18.world.india","type":"rw"});
+  //  message = new Paho.MQTT.Message(payload);
+  //  message.destinationName = "trace/keygen";
+  //  client.send(message);
+  client.subscribe("AZIQMUODdPISC/dev18.*.india.*.*.*.gagan.*");
+  for (i = 0; i < 100; i++) {
+  message = new Paho.MQTT.Message("Hello india!");
+  message.destinationName = "AbYANcDUDfQbc/dev18.world.india?ttl=300";
+  client.send(message);
+  }
+}
+
+// called when the client loses its connection
+function onConnectionLost(responseObject) {
+  if (responseObject.errorCode !== 0) {
+    console.log("onConnectionLost:"+responseObject.errorMessage);
+  }
+}
+
+// called when a message arrives
+function onMessageArrived(message) {
+  console.log("onMessageArrived:"+message.payloadString);
+}
+    </script>
+</head>
+<body>
+</body>
+</html>

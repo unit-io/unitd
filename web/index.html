@@ -1,0 +1,56 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Go Websocket</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDaFSIfAMEQMDKaFAWdNXPaObDPAJeGffdBFcNBUOJbcQZMYA");
+        // set callback handlers
+client.onConnectionLost = onConnectionLost;
+client.onMessageArrived = onMessageArrived;
+
+// connect the client
+client.connect({onSuccess:onConnect});
+
+// called when the client connects
+function onConnect() {
+  // Once a connection has been made, make a subscription and send a message.
+  console.log("onConnect");
+  // payload = JSON.stringify({"type":"id"});
+  // message = new Paho.MQTT.Message(payload);
+  // message.destinationName = "trace/clientid";
+  // client.send(message);
+  // payload = JSON.stringify({"topic":"...","type":"rw"});
+  // message = new Paho.MQTT.Message(payload);
+  // message.destinationName = "trace/keygen";
+  // client.send(message);
+  // payload = JSON.stringify({"topic":"dev20.world","type":"rw"});
+  // message = new Paho.MQTT.Message(payload);
+  // message.destinationName = "trace/keygen";
+  // client.send(message);
+  client.subscribe("AYAAMACRZDCHK/...");
+  for (i = 0; i < 70; i++) {
+  message = new Paho.MQTT.Message("The Remaining Length is encoded using a variable length encoding scheme which uses a single byte for values up to 127. Larger values are handled as follows. The least significant seven bits of each byte encode the data, and the most significant bit is used to indicate that there are following bytes in the representation. Thus each byte encodes 128 values and a continuation bit. The maximum number of bytes in the Remaining Length field is four.");
+  message.destinationName = "AbQANYGEaWLHY/dev20.world";
+  client.send(message); 
+  }
+}
+
+// called when the client loses its connection
+function onConnectionLost(responseObject) {
+  if (responseObject.errorCode !== 0) {
+    console.log("onConnectionLost:"+responseObject.errorMessage);
+  }
+}
+
+// called when a message arrives
+function onMessageArrived(message) {
+  console.log("onMessageArrived:"+message.payloadString);
+}
+    </script>
+</head>
+<body>
+</body>
+</html>
