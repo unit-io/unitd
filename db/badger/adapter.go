@@ -1,15 +1,15 @@
 package adapter
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"time"
-	"errors"
-	"encoding/json"
 
-	"github.com/tracedb/trace/store"
-	"github.com/tracedb/trace/message"
-	"github.com/tracedb/trace/pkg/log"
 	"github.com/dgraph-io/badger"
+	"github.com/frontnet/trace/message"
+	"github.com/frontnet/trace/pkg/log"
+	"github.com/frontnet/trace/store"
 	"github.com/kelindar/binary"
 )
 
@@ -22,7 +22,7 @@ const (
 )
 
 type configType struct {
-	Dir    string `json:"dir,omitempty"`
+	Dir      string `json:"dir,omitempty"`
 	ValueDir string `json:"value_dir,omitempty"`
 }
 
@@ -35,7 +35,7 @@ const (
 
 // Store represents an SSD-optimized storage store.
 type adapter struct {
-	db      *badger.DB    // The underlying database to store messages.
+	db      *badger.DB // The underlying database to store messages.
 	version int
 }
 
@@ -44,7 +44,7 @@ func (a *adapter) Open(jsonconfig string) error {
 	if a.db != nil {
 		return errors.New("badger adapter is already connected")
 	}
-	
+
 	var err error
 	var config configType
 
@@ -52,32 +52,13 @@ func (a *adapter) Open(jsonconfig string) error {
 		return errors.New("badger adapter failed to parse config: " + err.Error())
 	}
 
-	// Create the options
-	opts := badger.DefaultOptions
-	opts.Dir = config.Dir
-	if opts.Dir == "" {
-		opts.Dir = "/tmp/badger"
-	}
-
-	opts.ValueDir = config.ValueDir
-	if opts.ValueDir == "" {
-		opts.ValueDir = opts.Dir
-	}
-
-	opts.SyncWrites = false
-
 	// Make sure we have a directory
-	if err := os.MkdirAll(opts.Dir, 0777); err != nil {
+	if err := os.MkdirAll(config.Dir, 0777); err != nil {
 		log.Error("adapter.Open", "Unable to create db dir")
 	}
 
-	// Make sure we have a directory
-	if err := os.MkdirAll(opts.ValueDir, 0777); err != nil {
-		log.Error("adapter.Open", "Unable to create db dir")
-	}
-	
 	// Attempt to open the database
-	a.db, err = badger.Open(opts)
+	a.db, err = badger.Open(badger.DefaultOptions(config.Dir))
 	if err != nil {
 		log.Error("adapter.Open", "Unable to open db")
 		return err
@@ -114,7 +95,8 @@ func (a *adapter) StoreWithTTL(key, val []byte, TTL time.Duration) error {
 	defer tx.Discard()
 
 	// Use msg ID as key
-	err := tx.SetWithTTL(key, val, TTL)
+	e := badger.NewEntry(key, val).WithTTL(TTL)
+	err := tx.SetEntry(e)
 	if err != nil {
 		log.Error("adapter.Store", "store error: "+err.Error())
 		return err
@@ -144,24 +126,24 @@ func (a *adapter) Query(prefix []byte, ssid message.Ssid, cutoff int64, limit in
 		}
 
 		// Seek the prefix and check the key so we can quickly exit the iteration.
-		for it.Seek(prefix); it.Valid() && message.ID(it.Item().Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit;  it.Next() {
+		for it.Seek(prefix); it.Valid() && message.ID(it.Item().Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit; it.Next() {
 			//for it.Seek(prefix); it.Valid(); it.Next() {
-				var msg message.Message
-				item := it.Item()
-				//k := item.Key()
-				err := item.Value(func(v []byte) error {
-					err = binary.Unmarshal(v, &msg)
+			var msg message.Message
+			item := it.Item()
+			//k := item.Key()
+			err := item.Value(func(v []byte) error {
+				err = binary.Unmarshal(v, &msg)
 				if err != nil {
 					log.Error("adapter.Query", "unable to unmarshal value: "+err.Error())
 					return err
 				}
 				matches = append(matches, msg)
-	
+
 				return nil
 			})
 			if err != nil {
 				log.Error("adapter.Query", "unable to query db: "+err.Error())
-			return err
+				return err
 			}
 		}
 

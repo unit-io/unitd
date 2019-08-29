@@ -1,12 +1,12 @@
 package message
 
 import (
-	"time"
 	"bytes"
 	"strconv"
+	"time"
 
-	"github.com/tracedb/trace/pkg/hash"
-	"github.com/tracedb/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/hash"
+	"github.com/frontnet/trace/pkg/log"
 )
 
 var zeroTime = time.Unix(0, 0)

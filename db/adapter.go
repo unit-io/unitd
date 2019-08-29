@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/tracedb/trace/message"
+	"github.com/frontnet/trace/message"
 )
 
 var (

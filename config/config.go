@@ -2,8 +2,8 @@ package config
 
 import (
 	"encoding/json"
-	
-	"github.com/tracedb/trace/pkg/log"
+
+	"github.com/frontnet/trace/pkg/log"
 )
 
 // Config represents main configuration.
@@ -17,7 +17,7 @@ type Config struct {
 
 	// Default logging level is "InfoLevel" so to enable the debug log set the "LogLevel" to "DebugLevel".
 	LoggingLevel string `json:"logging_level"`
-	
+
 	// MaxMessageSize     int             `json:"max_message_size"`
 	// // Maximum number of topic subscribers.
 	// MaxSubscriberCount int             `json:"max_subscriber_count"`
@@ -25,11 +25,11 @@ type Config struct {
 	EncryptionConfig json.RawMessage `json:"encryption_config"`
 
 	// Configs for subsystems
-	Cluster   json.RawMessage             `json:"cluster_config"`
+	Cluster json.RawMessage `json:"cluster_config"`
 
 	// Config for database store
 	Store json.RawMessage `json:"store_config"`
-	
+
 	// Config to expose runtime stats
 	VarzPath string `json:"varz_path"`
 }

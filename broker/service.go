@@ -10,19 +10,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tracedb/trace/config"
-	"github.com/tracedb/trace/listener"
-	"github.com/tracedb/trace/message"
-	"github.com/tracedb/trace/pkg/crypto"
-	"github.com/tracedb/trace/pkg/tcp"
-	"github.com/tracedb/trace/pkg/uid"
-	"github.com/tracedb/trace/pkg/log"
-	"github.com/tracedb/trace/pkg/stats"
-	"github.com/tracedb/trace/websocket"
+	"github.com/frontnet/trace/config"
+	"github.com/frontnet/trace/listener"
+	"github.com/frontnet/trace/message"
+	"github.com/frontnet/trace/pkg/crypto"
+	"github.com/frontnet/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/stats"
+	"github.com/frontnet/trace/pkg/tcp"
+	"github.com/frontnet/trace/pkg/uid"
+	"github.com/frontnet/trace/websocket"
 
 	// Database store
-	_ "github.com/tracedb/trace/db/badger"
-	"github.com/tracedb/trace/store"
+	_ "github.com/frontnet/trace/db/badger"
+	"github.com/frontnet/trace/store"
 )
 
 //Service is a main struct
@@ -37,8 +37,8 @@ type Service struct {
 	subscriptions *message.Subscriptions // The subscription matching trie.
 	http          *http.Server           // The underlying HTTP server.
 	tcp           *tcp.Server            // The underlying TCP server.
-	meter         *Meter         // The metircs to measure timeseries on mqtt message events
-	stats 		  *stats.Stats
+	meter         *Meter                 // The metircs to measure timeseries on mqtt message events
+	stats         *stats.Stats
 }
 
 func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error) {
@@ -54,8 +54,8 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		http:          new(http.Server),
 		tcp:           new(tcp.Server),
 		meter:         NewMeter(),
-		
-		stats:   stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
+
+		stats: stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
 	}
 
 	// Create a new HTTP request multiplexer
@@ -80,7 +80,7 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 	// Open database connection
 	err = store.Open(string(s.config.Store))
 	if err != nil {
-		log.Fatal("service","Failed to connect to DB:", err)
+		log.Fatal("service", "Failed to connect to DB:", err)
 	}
 
 	return s, nil
@@ -161,9 +161,9 @@ func (s *Service) Close() {
 
 	s.meter.UnregisterAll()
 	s.stats.Unregister()
-	
+
 	store.Close()
-	
+
 	// Shutdown local cluster node, if it's a part of a cluster.
 	Globals.Cluster.shutdown()
 }

@@ -1,25 +1,25 @@
 package trace
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"path"
 	"time"
-	"encoding/json"
 
 	"github.com/influxdata/telegraf"
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 
-	traced "github.com/tracedb/trace/broker"
+	traced "github.com/frontnet/trace/broker"
 )
 
 type Stats struct {
 	Server          string
-	ResponseTimeout		internal.Duration
-	Interval			internal.Duration
-	FlushInterval		internal.Duration
+	ResponseTimeout internal.Duration
+	Interval        internal.Duration
+	FlushInterval   internal.Duration
 
 	client *http.Client
 }
@@ -70,24 +70,24 @@ func (s *Stats) Gather(acc telegraf.Accumulator) error {
 	}
 	acc.AddFields("trace",
 		map[string]interface{}{
-			"Uptime": stats.Uptime,
-			"Connections": stats.Connections,
-			"InMsgs": stats.InMsgs,
-			"OutMsgs": stats.OutMsgs,
-			"InBytes": stats.InBytes,
-			"OutBytes": stats.OutBytes,
+			"Uptime":        stats.Uptime,
+			"Connections":   stats.Connections,
+			"InMsgs":        stats.InMsgs,
+			"OutMsgs":       stats.OutMsgs,
+			"InBytes":       stats.InBytes,
+			"OutBytes":      stats.OutBytes,
 			"Subscriptions": stats.Subscriptions,
-			"HMean": stats.HMean,
-			"P50": stats.P50,
-			"P75": stats.P75,
-			"P95": stats.P95,
-			"P99": stats.P99,
-			"P999": stats.P999,
-			"Long5p": stats.Long5p,
-			"Short5p": stats.Short5p,
-			"Max": stats.Max,
-			"Min": stats.Min,
-			"StdDev": stats.StdDev,
+			"HMean":         stats.HMean,
+			"P50":           stats.P50,
+			"P75":           stats.P75,
+			"P95":           stats.P95,
+			"P99":           stats.P99,
+			"P999":          stats.P999,
+			"Long5p":        stats.Long5p,
+			"Short5p":       stats.Short5p,
+			"Max":           stats.Max,
+			"Min":           stats.Min,
+			"StdDev":        stats.StdDev,
 		},
 		map[string]string{"stats": "conn_traffic"},
 		time.Now())
@@ -101,7 +101,7 @@ func (s *Stats) createHTTPClient() *http.Client {
 	}
 	timeout := s.ResponseTimeout.Duration
 	if timeout == time.Duration(0) {
-	 	timeout = 5 * time.Second
+		timeout = 5 * time.Second
 	}
 	return &http.Client{
 		Transport: transport,

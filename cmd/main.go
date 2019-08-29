@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/tracedb/trace/pkg/hash"
-	"github.com/tracedb/trace/message/security"
+	"github.com/frontnet/trace/message/security"
+	"github.com/frontnet/trace/pkg/hash"
 )
 
 const (

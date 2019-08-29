@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/tracedb/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/log"
 )
 
 // Hash is a signature of a hash function used by the package.
@@ -128,6 +128,6 @@ func (ring *Ring) Signature() string {
 
 func (ring *Ring) dump() {
 	for _, e := range ring.keys {
-		log.ErrLogger.Debug().Str("key", e.key).Uint32("hash",e.hash)
+		log.ErrLogger.Debug().Str("key", e.key).Uint32("hash", e.hash)
 	}
 }

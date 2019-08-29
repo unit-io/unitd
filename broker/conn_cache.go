@@ -3,7 +3,7 @@ package broker
 import (
 	"sync"
 
-	"github.com/tracedb/trace/pkg/uid"
+	"github.com/frontnet/trace/pkg/uid"
 )
 
 type ConnCache struct {

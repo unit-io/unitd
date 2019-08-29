@@ -1,20 +1,20 @@
 package broker
 
 import (
-	"encoding/json"
-	"time"
-	"errors"
 	"bufio"
+	"encoding/json"
+	"errors"
+	"time"
 
-	"github.com/tracedb/trace/message"
-	"github.com/tracedb/trace/message/security"
-	"github.com/tracedb/trace/pkg/crypto"
-	"github.com/tracedb/trace/pkg/uid"
-	"github.com/tracedb/trace/pkg/log"
-	"github.com/tracedb/trace/mqtt"
-	"github.com/tracedb/trace/pkg/stats"
-	"github.com/tracedb/trace/types"
-	"github.com/tracedb/trace/store"
+	"github.com/frontnet/trace/message"
+	"github.com/frontnet/trace/message/security"
+	"github.com/frontnet/trace/mqtt"
+	"github.com/frontnet/trace/pkg/crypto"
+	"github.com/frontnet/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/stats"
+	"github.com/frontnet/trace/pkg/uid"
+	"github.com/frontnet/trace/store"
+	"github.com/frontnet/trace/types"
 )
 
 const (
@@ -88,7 +88,7 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 
 		// Subscribe for each subscription
 		for _, sub := range packet.Subscriptions {
-			if err := c.onSubscribe(packet,sub.Topic); err != nil {
+			if err := c.onSubscribe(packet, sub.Topic); err != nil {
 				status = err.Status
 				ack.Qos = append(ack.Qos, 0x80) // 0x80 indicate subscription failure
 				c.notifyError(err, packet.MessageID)
@@ -117,7 +117,7 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 
 		// Unsubscribe from each subscription
 		for _, sub := range packet.Topics {
-			if err := c.onUnsubscribe(packet,sub.Topic); err != nil {
+			if err := c.onUnsubscribe(packet, sub.Topic); err != nil {
 				status = err.Status
 				c.notifyError(err, packet.MessageID)
 			}
@@ -144,15 +144,15 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 	case mqtt.PUBLISH:
 		packet := pkt.(*mqtt.Publish)
 
-		if err := c.onPublish(packet,packet.Topic, packet.Payload); err != nil {
+		if err := c.onPublish(packet, packet.Topic, packet.Payload); err != nil {
 			status = err.Status
-				c.notifyError(err, packet.MessageID)
+			c.notifyError(err, packet.MessageID)
 		}
 
 		// Acknowledge the publication
 		if packet.Header.QOS > 0 {
 			ack := mqtt.Puback{MessageID: packet.MessageID}
-			if !c.SendRawBytes(ack.Encode()){
+			if !c.SendRawBytes(ack.Encode()) {
 				return errors.New("conn.handler: The network connection timeout.")
 			}
 		}
@@ -221,7 +221,7 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 	if !ok {
 		return types.ErrUnauthorized
 	}
-	
+
 	// Parse the topic
 	topic.Parse(c.clientid.Contract(), wildcard)
 	if topic.TopicType == message.TopicInvalid {
@@ -277,7 +277,7 @@ func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Err
 	if !ok {
 		return types.ErrUnauthorized
 	}
-	
+
 	// Parse the topic
 	topic.Parse(c.clientid.Contract(), wildcard)
 	if topic.TopicType == message.TopicInvalid {
@@ -354,7 +354,7 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		msg.TTL = ttl // Add the TTL to the message
 		store.Message.Store(msg)
 	}
-	
+
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, topic, msg)
 

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/tracedb/trace/pkg/encoding"
-	"github.com/tracedb/trace/pkg/hash"
+	"github.com/frontnet/trace/pkg/encoding"
+	"github.com/frontnet/trace/pkg/hash"
 )
 
 // Access types for a security key.

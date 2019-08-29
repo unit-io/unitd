@@ -1,11 +1,11 @@
 package message
 
 import (
-	"sync/atomic"
 	"math"
+	"sync/atomic"
 
+	"github.com/frontnet/trace/pkg/uid"
 	"github.com/kelindar/binary"
-	"github.com/tracedb/trace/pkg/uid"
 )
 
 const (
@@ -16,7 +16,7 @@ const (
 	PINGREQ
 	PINGRESP
 	DISCONNECT
-	
+
 	fixed = 16
 )
 
@@ -43,7 +43,7 @@ type Message struct {
 	ID      ID     `json:"id,omitempty"`   // The ID of the message
 	Topic   []byte `json:"chan,omitempty"` // The topic of the message
 	Payload []byte `json:"data,omitempty"` // The payload of the message
-	TTL     int64 `json:"ttl,omitempty"`  // The time-to-live of the message
+	TTL     int64  `json:"ttl,omitempty"`  // The time-to-live of the message
 }
 
 // New creates a new message structure from the provided SSID, topic and payload.
@@ -69,7 +69,7 @@ func GenPrefix(ssid Ssid, from int64) ID {
 
 	binary.BigEndian.PutUint32(id[0:4], ssid[0]^ssid[1])
 	binary.BigEndian.PutUint32(id[4:8], math.MaxUint32-uint32(from-uid.Offset))
-	
+
 	return id
 }
 

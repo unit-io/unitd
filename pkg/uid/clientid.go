@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/tracedb/trace/pkg/crypto"
-	"github.com/tracedb/trace/pkg/encoding"
+	"github.com/frontnet/trace/pkg/crypto"
+	"github.com/frontnet/trace/pkg/encoding"
 )
 
 // ID represents a unique ID for client connection.
@@ -97,7 +97,7 @@ func Decode(buffer []byte, mac *crypto.MAC) (ID, error) {
 	}
 
 	// Warning: base32 decoding is done in the same underlying buffer, to save up
-	// on memory allocations. 
+	// on memory allocations.
 	encoding.Decode32(buffer, buffer)
 	// Decryption.
 	key, err := mac.Decrypt(nil, buffer[:32])

@@ -1,17 +1,17 @@
 package main
 
 import (
-	"time"
 	"context"
 	"encoding/json"
 	"flag"
 	"os"
 	"path/filepath"
+	"time"
 
-	"github.com/tracedb/trace/broker"
-	"github.com/tracedb/trace/config"
-	"github.com/tracedb/trace/pkg/log"
 	jcr "github.com/DisposaBoy/JsonConfigReader"
+	"github.com/frontnet/trace/broker"
+	"github.com/frontnet/trace/config"
+	"github.com/frontnet/trace/pkg/log"
 	"github.com/rs/zerolog"
 )
 
@@ -30,7 +30,7 @@ func main() {
 
 	// Default level for is fatal, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	
+
 	//*configfile = toAbsolutePath(rootpath, *configfile)
 	*configfile = filepath.Join(filepath.Dir(exe), *configfile)
 	log.Debug("main", "Using config from "+*configfile)
@@ -72,7 +72,7 @@ func main() {
 	}
 
 	broker.Globals.Service = svc
-	
+
 	//Listen and serve
 	svc.Listen()
 	log.Info("main", "Service is runnig at port "+cfg.Listen)

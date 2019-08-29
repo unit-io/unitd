@@ -10,12 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/tracedb/trace/pkg/log"
-	"github.com/tracedb/trace/listener"
-	"github.com/tracedb/trace/message"
-	rh "github.com/tracedb/trace/pkg/hash"
-	"github.com/tracedb/trace/pkg/uid"
-	"github.com/tracedb/trace/mqtt"
+	"github.com/frontnet/trace/listener"
+	"github.com/frontnet/trace/message"
+	"github.com/frontnet/trace/mqtt"
+	rh "github.com/frontnet/trace/pkg/hash"
+	"github.com/frontnet/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/uid"
 )
 
 const (
@@ -137,7 +137,7 @@ func (n *ClusterNode) reconnect() {
 			n.connected = true
 			n.reconnecting = false
 			n.lock.Unlock()
-			log.Info("cluster.reconnect", "connection established " + n.name)
+			log.Info("cluster.reconnect", "connection established "+n.name)
 			return
 		} else if count == 0 {
 			reconnTicker = time.NewTicker(defaultClusterReconnect)
@@ -150,7 +150,7 @@ func (n *ClusterNode) reconnect() {
 			// Wait for timer to try to reconnect again. Do nothing if the timer is inactive.
 		case <-n.done:
 			// Shutting down
-			log.Info("cluster.reconnect", "node shutdown started " + n.name)
+			log.Info("cluster.reconnect", "node shutdown started "+n.name)
 			reconnTicker.Stop()
 			if n.endpoint != nil {
 				n.endpoint.Close()
@@ -159,7 +159,7 @@ func (n *ClusterNode) reconnect() {
 			n.connected = false
 			n.reconnecting = false
 			n.lock.Unlock()
-			log.Info("cluster", "node shut down completed " + n.name)
+			log.Info("cluster", "node shut down completed "+n.name)
 			return
 		}
 	}
@@ -171,7 +171,7 @@ func (n *ClusterNode) call(proc string, msg, resp interface{}) error {
 	}
 
 	if err := n.endpoint.Call(proc, msg, resp); err != nil {
-		log.Fatal("cluster.call", "call failed to " + n.name, err)
+		log.Fatal("cluster.call", "call failed to "+n.name, err)
 
 		n.lock.Lock()
 		if n.connected {
@@ -233,7 +233,7 @@ func (n *ClusterNode) callAsync(proc string, msg, resp interface{}, done chan *r
 
 // Proxy forwards message to master
 func (n *ClusterNode) forward(msg *ClusterReq) error {
-	log.Info("cluster.forward", "forwarding request to node " + n.name)
+	log.Info("cluster.forward", "forwarding request to node "+n.name)
 	msg.Node = Globals.Cluster.thisNodeName
 	rejected := false
 	err := n.call("Cluster.Master", msg, &rejected)
@@ -267,7 +267,7 @@ type Cluster struct {
 // dispatch the message to it like it came from a normal ws/lp connection.
 // Called by a remote node.
 func (c *Cluster) Master(msg *ClusterReq, rejected *bool) error {
-	log.Info("cluster.Master", "master request received from node "+ msg.Node)
+	log.Info("cluster.Master", "master request received from node "+msg.Node)
 
 	// Find the local connection associated with the given remote connection.
 	conn := Globals.ConnCache.Get(msg.Conn.ConnID)
@@ -284,11 +284,11 @@ func (c *Cluster) Master(msg *ClusterReq, rejected *bool) error {
 			// If the session is not found, create it.
 			node := Globals.Cluster.nodes[msg.Node]
 			if node == nil {
-				log.Error("cluster.Master", "request from an unknown node "+ msg.Node)
+				log.Error("cluster.Master", "request from an unknown node "+msg.Node)
 				return nil
 			}
 
-			log.Info("cluster.Master","new connection request"+ string(msg.Conn.ConnID))
+			log.Info("cluster.Master", "new connection request"+string(msg.Conn.ConnID))
 			conn = Globals.Service.newRpcConn(node, msg.Conn.ConnID, msg.Conn.ClientID)
 			go conn.rpcWriteLoop()
 		}
@@ -313,7 +313,7 @@ func (c *Cluster) Master(msg *ClusterReq, rejected *bool) error {
 
 // Dispatch receives messages from the master node addressed to a specific local connection.
 func (Cluster) Proxy(msg *ClusterResp, unused *bool) error {
-	log.Info("cluster.Proxy", "response from Master for connection "+ string(msg.FromConnID))
+	log.Info("cluster.Proxy", "response from Master for connection "+string(msg.FromConnID))
 
 	// This cluster member received a response from topic owner to be forwarded to a connection
 	// Find appropriate connection, send the message to it
@@ -340,7 +340,7 @@ func (c *Cluster) nodeForContract(contract string) *ClusterNode {
 
 	node := Globals.Cluster.nodes[key]
 	if node == nil {
-		log.Error("cluster", "no node for contract "+ contract + key)
+		log.Error("cluster", "no node for contract "+contract+key)
 	}
 	return node
 }
@@ -428,13 +428,13 @@ func ClusterInit(configString json.RawMessage, self *string) int {
 
 	// This is a standalone server, not initializing
 	if len(configString) == 0 {
-		log.Info("cluster.ClusterInit","Running as a standalone server.")
+		log.Info("cluster.ClusterInit", "Running as a standalone server.")
 		return 1
 	}
 
 	var config clusterConfig
 	if err := json.Unmarshal(configString, &config); err != nil {
-		log.Fatal("cluster.ClusterInit","error parsing cluster config", err)
+		log.Fatal("cluster.ClusterInit", "error parsing cluster config", err)
 	}
 
 	thisName := *self
@@ -478,7 +478,7 @@ func ClusterInit(configString json.RawMessage, self *string) int {
 
 	if len(Globals.Cluster.nodes) == 0 {
 		// Cluster needs at least two nodes.
-		log.Info("cluster.ClusterInit","Invalid cluster size: 1")
+		log.Info("cluster.ClusterInit", "Invalid cluster size: 1")
 	}
 
 	if !Globals.Cluster.failoverInit(config.Failover) {
@@ -515,7 +515,7 @@ func (c *Conn) rpcWriteLoop() {
 				log.Error("conn.writeRPC", err.Error())
 				return
 			}
-		case msg := <- c.stop:
+		case msg := <-c.stop:
 			// Shutdown is requested, don't care if the message is delivered
 			if msg != nil {
 				c.clnode.call("Cluster.Proxy", &ClusterResp{Pkt: msg.([]byte), FromConnID: c.connid}, &unused)
@@ -527,7 +527,7 @@ func (c *Conn) rpcWriteLoop() {
 
 // Proxied session is being closed at the Master node
 func (c *Conn) closeRPC() {
-		log.Info("cluster.closeRPC", "session closed at master")
+	log.Info("cluster.closeRPC", "session closed at master")
 }
 
 // Start accepting connections.
@@ -549,13 +549,13 @@ func (c *Cluster) Start() {
 
 	err = rpc.Register(c)
 	if err != nil {
-		log.Fatal("cluster.Start","error registering rpc server",err)
+		log.Fatal("cluster.Start", "error registering rpc server", err)
 	}
 
 	go rpc.Accept(l)
 	//go l.Serve()
 
-	log.ConnLogger.Info().Str("context","cluster.Start").Msgf("Cluster of %d nodes initialized, node '%s' listening on [%s]", len(Globals.Cluster.nodes)+1,
+	log.ConnLogger.Info().Str("context", "cluster.Start").Msgf("Cluster of %d nodes initialized, node '%s' listening on [%s]", len(Globals.Cluster.nodes)+1,
 		Globals.Cluster.thisNodeName, c.listenOn)
 }
 

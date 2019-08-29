@@ -6,12 +6,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/tracedb/trace/pkg/log"
-	"github.com/tracedb/trace/pkg/metrics"
+	"github.com/frontnet/trace/pkg/log"
+	"github.com/frontnet/trace/pkg/metrics"
 )
 
 type Meter struct {
-	Metrics		   metrics.Metrics
+	Metrics        metrics.Metrics
 	ConnTimeSeries metrics.TimeSeries
 	Connections    metrics.Counter
 	Subscriptions  metrics.Counter
@@ -24,7 +24,7 @@ type Meter struct {
 func NewMeter() *Meter {
 	Metrics := metrics.NewMetrics()
 	c := &Meter{
-		Metrics:	    Metrics,
+		Metrics:        Metrics,
 		ConnTimeSeries: metrics.GetOrRegisterTimeSeries("conn_timeseries_ns", Metrics),
 		Connections:    metrics.NewCounter(),
 		Subscriptions:  metrics.NewCounter(),
