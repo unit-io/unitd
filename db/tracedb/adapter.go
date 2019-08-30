@@ -58,7 +58,7 @@ func (a *adapter) Open(jsonconfig string) error {
 	}
 
 	// Attempt to open the database
-	a.db, err = tracedb.Open(config.Dir, nil)
+	a.db, err = tracedb.Open(config.Dir+"/"+defaultDatabase, nil)
 	if err != nil {
 		log.Error("adapter.Open", "Unable to open db")
 		return err
@@ -91,11 +91,12 @@ func (a *adapter) GetName() string {
 // Store appends the messages to the store.
 func (a *adapter) StoreWithTTL(key, val []byte, TTL time.Duration) error {
 	// Start the transaction.
-	return a.db.Update(func(b *tracedb.Batch) error {
-		b.PutWithTTL(key, val, TTL)
-		_, err := b.Write()
-		return err
-	})
+	return a.db.PutWithTTL(key, val, TTL)
+	// return a.db.Update(func(b *tracedb.Batch) error {
+	// 	b.PutWithTTL(key, val, TTL)
+	// 	_, err := b.Write()
+	// 	return err
+	// })
 }
 
 // Query performs a query and attempts to fetch last n messages where
@@ -110,10 +111,10 @@ func (a *adapter) Query(prefix []byte, ssid message.Ssid, cutoff int64, limit in
 	it := a.db.Items()
 
 	// Seek the prefix and check the key so we can quickly exit the iteration.
-	for ; it.Valid() && message.ID(it.Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit; it.Next() {
+	for it.First(); it.Valid() && message.ID(it.Item().Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit; it.Next() {
 		//for it.Seek(prefix); it.Valid(); it.Next() {
 		var msg message.Message
-		err = binary.Unmarshal(it.Value(), &msg)
+		err = binary.Unmarshal(it.Item().Value(), &msg)
 		if err != nil {
 			log.Error("adapter.Query", "unable to unmarshal value: "+err.Error())
 			return nil, err

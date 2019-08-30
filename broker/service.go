@@ -21,7 +21,7 @@ import (
 	"github.com/frontnet/trace/websocket"
 
 	// Database store
-	_ "github.com/frontnet/trace/db/badger"
+	_ "github.com/frontnet/trace/db/tracedb"
 	"github.com/frontnet/trace/store"
 )
 
