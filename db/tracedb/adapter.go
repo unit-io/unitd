@@ -91,12 +91,12 @@ func (a *adapter) GetName() string {
 // Store appends the messages to the store.
 func (a *adapter) StoreWithTTL(key, val []byte, TTL time.Duration) error {
 	// Start the transaction.
-	return a.db.PutWithTTL(key, val, TTL)
-	// return a.db.Update(func(b *tracedb.Batch) error {
-	// 	b.PutWithTTL(key, val, TTL)
-	// 	_, err := b.Write()
-	// 	return err
-	// })
+	// return a.db.PutWithTTL(key, val, TTL)
+	return a.db.Update(func(b *tracedb.Batch) error {
+		b.PutWithTTL(key, val, TTL)
+		err := b.Write()
+		return err
+	})
 }
 
 // Query performs a query and attempts to fetch last n messages where
