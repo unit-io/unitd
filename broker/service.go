@@ -21,7 +21,7 @@ import (
 	"github.com/saffat-in/trace/websocket"
 
 	// Database store
-	_ "github.com/saffat-in/trace/db/tracedb"
+	_ "github.com/dgraph-io/badger"
 	"github.com/saffat-in/trace/store"
 )
 
