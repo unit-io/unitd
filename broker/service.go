@@ -10,19 +10,19 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/frontnet/trace/config"
-	"github.com/frontnet/trace/listener"
-	"github.com/frontnet/trace/message"
-	"github.com/frontnet/trace/pkg/crypto"
-	"github.com/frontnet/trace/pkg/log"
-	"github.com/frontnet/trace/pkg/stats"
-	"github.com/frontnet/trace/pkg/tcp"
-	"github.com/frontnet/trace/pkg/uid"
-	"github.com/frontnet/trace/websocket"
+	"github.com/saffat-in/trace/config"
+	"github.com/saffat-in/trace/listener"
+	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/pkg/crypto"
+	"github.com/saffat-in/trace/pkg/log"
+	"github.com/saffat-in/trace/pkg/stats"
+	"github.com/saffat-in/trace/pkg/tcp"
+	"github.com/saffat-in/trace/pkg/uid"
+	"github.com/saffat-in/trace/websocket"
 
 	// Database store
-	_ "github.com/frontnet/trace/db/tracedb"
-	"github.com/frontnet/trace/store"
+	_ "github.com/saffat-in/trace/db/tracedb"
+	"github.com/saffat-in/trace/store"
 )
 
 //Service is a main struct

@@ -6,11 +6,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/frontnet/trace/message"
-	"github.com/frontnet/trace/pkg/log"
-	"github.com/frontnet/trace/store"
-	"github.com/frontnet/tracedb"
 	"github.com/kelindar/binary"
+	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/pkg/log"
+	"github.com/saffat-in/trace/store"
+	"github.com/saffat-in/tracedb"
 )
 
 const (
@@ -92,8 +92,8 @@ func (a *adapter) GetName() string {
 func (a *adapter) StoreWithTTL(key, val []byte, TTL time.Duration) error {
 	// Start the transaction.
 	// return a.db.PutWithTTL(key, val, TTL)
-	return a.db.Update(func(b *tracedb.Batch) error {
-		b.PutWithTTL(key, val, TTL)
+	return a.db.Batch(func(b *tracedb.Batch) error {
+		b.Put(key, val)
 		err := b.Write()
 		return err
 	})
@@ -108,7 +108,7 @@ func (a *adapter) Query(prefix []byte, ssid message.Ssid, cutoff int64, limit in
 	}
 
 	// Iterating over key/value pairs.
-	it := a.db.Items()
+	it, err := a.db.Items(&tracedb.Query{Topic: []byte("dev18?last=3m")})
 
 	// Seek the prefix and check the key so we can quickly exit the iteration.
 	for it.First(); it.Valid() && message.ID(it.Item().Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit; it.Next() {

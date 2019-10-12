@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/frontnet/trace/pkg/encoding"
-	"github.com/frontnet/trace/pkg/hash"
+	"github.com/saffat-in/trace/pkg/encoding"
+	"github.com/saffat-in/trace/pkg/hash"
 )
 
 // Access types for a security key.

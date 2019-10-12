@@ -5,9 +5,9 @@ import (
 	"errors"
 	"time"
 
-	adapter "github.com/frontnet/trace/db"
-	"github.com/frontnet/trace/message"
-	"github.com/frontnet/trace/pkg/log"
+	adapter "github.com/saffat-in/trace/db"
+	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/pkg/log"
 
 	"github.com/kelindar/binary"
 )

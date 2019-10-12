@@ -15,7 +15,7 @@ Trace can be used for online gaming and mobile apps as it satisfy the requiremen
 ## Quick Start
 To build trace from source code use go get command.
 
-> go get -u github.com/frontnet/trace && trace
+> go get -u github.com/saffat-in/trace && trace
 
 ## Usage
 
@@ -118,4 +118,4 @@ function onConnect() {
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.
 
 ## Licensing
-Copyright (c) 2016-2019 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/frontnet/trace/blob/master/LICENSE).
+Copyright (c) 2016-2019 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/saffat-in/trace/blob/master/LICENSE).

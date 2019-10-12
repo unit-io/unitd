@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/frontnet/trace/message/security"
+	"github.com/saffat-in/trace/message/security"
 )
 
 // Error represents an event code which provides a more details.

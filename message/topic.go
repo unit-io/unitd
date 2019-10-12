@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/frontnet/trace/pkg/hash"
-	"github.com/frontnet/trace/pkg/log"
+	"github.com/saffat-in/trace/pkg/hash"
+	"github.com/saffat-in/trace/pkg/log"
 )
 
 var zeroTime = time.Unix(0, 0)

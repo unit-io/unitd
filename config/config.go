@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/frontnet/trace/pkg/log"
+	"github.com/saffat-in/trace/pkg/log"
 )
 
 // Config represents main configuration.

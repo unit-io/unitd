@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/dgraph-io/badger"
-	"github.com/frontnet/trace/message"
-	"github.com/frontnet/trace/pkg/log"
-	"github.com/frontnet/trace/store"
+	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/pkg/log"
+	"github.com/saffat-in/trace/store"
 	"github.com/kelindar/binary"
 )
 
