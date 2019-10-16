@@ -1,15 +1,19 @@
 package store
 
 import (
+	"encoding/binary"
 	"encoding/json"
 	"errors"
-	"time"
 
 	adapter "github.com/saffat-in/trace/db"
 	"github.com/saffat-in/trace/message"
-	"github.com/saffat-in/trace/pkg/log"
+	"github.com/saffat-in/trace/pkg/uid"
+)
 
-	"github.com/kelindar/binary"
+const (
+	// Maximum number of records to return
+	maxResults         = 1024
+	connStoreId uint32 = 4105991048 // hash("connectionstore")
 )
 
 var adp adapter.Adapter
@@ -110,21 +114,50 @@ type MessageStore struct{}
 // Message is the ancor for storing/retrieving Message objects
 var Message MessageStore
 
-func (m *MessageStore) Store(msg *message.Message) error {
-	key := msg.ID
-	TTL := time.Duration(msg.TTL)
-	val, err := binary.Marshal(msg)
-	if err != nil {
-		log.Error("adapter.Store", "msg marshal error: "+err.Error())
-		return err
-	}
-
-	return adp.StoreWithTTL(key, val, TTL)
+func (m *MessageStore) Put(contract uint32, topic, payload []byte) error {
+	return adp.Put(contract, topic, payload)
 }
 
-func (m *MessageStore) Query(ssid message.Ssid, from, until time.Time, limit int) ([]message.Message, error) {
-	prefix := message.GenPrefix(ssid, until.Unix())
-	cutoff := from.Unix()
+func (m *MessageStore) Get(contract uint32, topic []byte) (matches []message.Message, err error) {
+	resp, err := adp.Get(contract, topic, 0)
+	for _, payload := range resp {
+		msg := message.Message{
+			Topic:   topic,
+			Payload: payload,
+		}
+		matches = append(matches, msg)
+	}
 
-	return adp.Query(prefix, ssid, cutoff, limit)
+	return matches, err
+}
+
+// ConnectionStore is a Conection struct to hold methods for persistence mapping for the Connect LId.
+type ConnectionStore struct{}
+
+// Message is the ancor for storing/retrieving Message objects
+var Connection ConnectionStore
+
+func (c *ConnectionStore) Put(topic []byte, messageId []byte, connId uid.LID) error {
+	payload := make([]byte, 8)
+	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
+	return adp.PutWithID(connStoreId, topic, messageId, payload)
+}
+
+func (c *ConnectionStore) Get(topic []byte) (matches []uid.LID, err error) {
+	resp, err := adp.Get(connStoreId, topic, maxResults)
+	for _, payload := range resp {
+		matches = append(matches, uid.LID(binary.LittleEndian.Uint64(payload[:])))
+	}
+
+	return matches, err
+}
+
+func (c *ConnectionStore) GenID(topic []byte, connId uid.LID) ([]byte, error) {
+	payload := make([]byte, 8)
+	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
+	return adp.GenID(connStoreId, topic, payload)
+}
+
+func (c *ConnectionStore) Delete(topic []byte, messageId []byte) error {
+	return adp.Delete(connStoreId, topic, messageId)
 }

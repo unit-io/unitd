@@ -9,9 +9,11 @@ import (
 	"time"
 
 	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/message/security"
 	"github.com/saffat-in/trace/mqtt"
 	"github.com/saffat-in/trace/pkg/log"
 	"github.com/saffat-in/trace/pkg/uid"
+	"github.com/saffat-in/trace/store"
 	"github.com/saffat-in/trace/types"
 )
 
@@ -21,11 +23,11 @@ type Conn struct {
 	socket   net.Conn
 	send     chan []byte
 	stop     chan interface{}
-	username string            // The username provided by the client during MQTT connect.
-	clientid uid.ID            // The clientid provided by client during MQTT connect or new Id assigned.
-	connid   uid.LID           // The locally unique id of the connection.
-	service  *Service          // The service for this connection.
-	subs     *message.Counters // The subscriptions for this connection.
+	username string         // The username provided by the client during MQTT connect.
+	clientid uid.ID         // The clientid provided by client during MQTT connect or new Id assigned.
+	connid   uid.LID        // The locally unique id of the connection.
+	service  *Service       // The service for this connection.
+	subs     *message.Stats // The subscriptions for this connection.
 	// Reference to the cluster node where the connection has originated. Set only for cluster RPC sessions
 	clnode *ClusterNode
 	// Cluster nodes to inform when disconnected
@@ -39,7 +41,7 @@ func (s *Service) newConn(t net.Conn) *Conn {
 		stop:    make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
 		connid:  uid.NewLID(),
 		service: s,
-		subs:    message.NewCounters(),
+		subs:    message.NewStats(),
 	}
 
 	// Increment the connection counter
@@ -57,7 +59,7 @@ func (s *Service) newRpcConn(conn interface{}, connid uid.LID, clientid uid.ID) 
 		send:     make(chan []byte),         // buffered
 		stop:     make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
 		service:  s,
-		subs:     message.NewCounters(),
+		subs:     message.NewStats(),
 		clnode:   conn.(*ClusterNode),
 		nodes:    make(map[string]bool, 3),
 	}
@@ -131,7 +133,7 @@ func (c *Conn) writeLoop() {
 }
 
 // Subscribe subscribes to a particular topic.
-func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *message.Topic) (err error) {
+func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -144,32 +146,37 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *message.Topic) (err error) 
 			return err
 		}
 		// Add the subscription to Counters
-	} else if first := c.subs.Increment(topic.Parts, key); first {
-		// Subscribe the subscriber
-		if err = c.service.subscriptions.Subscribe(topic.Parts, topic.Depth, c); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.subscribe").Msgf("unable to subscribe to topic %s: %v '%v'", string(topic.Topic), err, c.connid) // Unable to subscribe
+	} else {
+		messageId, err := store.Connection.GenID(topic.Topic, c.connid)
+		if err != nil {
 			return err
 		}
-		// Increment the subscription counter
-		c.service.meter.Subscriptions.Inc(1)
+		if first := c.subs.Increment(topic.Topic[:topic.Size], key, messageId); first {
+			// Subscribe the subscriber
+			if err = store.Connection.Put(topic.Topic, messageId, c.connid); err != nil {
+				log.ErrLogger.Error().Str("context", "conn.subscribe").Msgf("unable to subscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to subscribe
+				return err
+			}
+			// Increment the subscription counter
+			c.service.meter.Subscriptions.Inc(1)
+		}
 	}
 	return nil
 }
 
 // Unsubscribe unsubscribes this client from a particular topic.
-func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *message.Topic) (err error) {
+func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
 	key := string(topic.Key)
 	// Remove the subscription from stats and if there's no more subscriptions, notify everyone.
-	if last := c.subs.Decrement(topic.Parts, key); last {
+	if last, messageId := c.subs.Decrement(topic.Topic[:topic.Size], key); last {
 		// Unsubscribe the subscriber
-		if err = c.service.subscriptions.Unsubscribe(topic.Parts, c); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.unsubscribe").Msgf("unable to unsubscribe to topic %s: %v '%v'", string(topic.Topic), err, c.connid) // Unable to subscribe
+		if err = store.Connection.Delete(topic.Topic[:topic.Size], messageId); err != nil {
+			log.ErrLogger.Error().Str("context", "conn.unsubscribe").Msgf("unable to unsubscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to unsubscribe
 			return err
 		}
-
 		// Decrement the subscription counter
 		c.service.meter.Subscriptions.Dec(1)
 	}
@@ -184,15 +191,24 @@ func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *message.Topic) (err err
 }
 
 // Publish publishes a message to everyone and returns the number of outgoing bytes written.
-func (c *Conn) publish(pkt *mqtt.Publish, topic *message.Topic, m *message.Message) (err error) {
-	ssid := message.NewSsid(topic.Parts)
+func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte) (err error) {
 	c.service.meter.InMsgs.Inc(1)
-	c.service.meter.InBytes.Inc(int64(len(m.Payload)))
+	c.service.meter.InBytes.Inc(int64(len(payload)))
 	// subsciption count
 	scount := 0
-	for _, subscriber := range c.service.subscriptions.Lookup(ssid) {
-		if subscriber != nil {
-			if !subscriber.SendMessage(m) {
+
+	conns, err := store.Connection.Get(topic.Topic)
+	if err != nil {
+		return err
+	}
+	m := &message.Message{
+		Topic:   topic.Topic[:topic.Size],
+		Payload: payload,
+	}
+	for _, connid := range conns {
+		sub := Globals.ConnCache.Get(connid)
+		if sub != nil {
+			if !sub.SendMessage(m) {
 				log.Error("conn.publish", "publish timeout")
 			}
 			scount++
@@ -229,8 +245,8 @@ func (c *Conn) notifyError(err *types.Error, messageID uint16) {
 }
 
 func (c *Conn) unsubAll() {
-	for _, parts := range c.subs.All() {
-		c.service.subscriptions.Unsubscribe(parts, c)
+	for _, stat := range c.subs.All() {
+		store.Connection.Delete(stat.Topic, stat.ID)
 	}
 }
 
@@ -244,8 +260,8 @@ func (c *Conn) close() error {
 	// already locked. Locking the 'Close()' would result in a deadlock.
 	// Don't close clustered connection, their servers are not being shut down.
 	if c.clnode == nil {
-		for _, parts := range c.subs.All() {
-			c.service.subscriptions.Unsubscribe(parts, c)
+		for _, stat := range c.subs.All() {
+			store.Connection.Delete(stat.Topic, stat.ID)
 			// Decrement the subscription counter
 			c.service.meter.Subscriptions.Dec(1)
 		}

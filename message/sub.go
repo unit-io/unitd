@@ -1,49 +1,24 @@
 package message
 
 import (
-	"unsafe"
 	"sync"
 )
 
 // Various constant parts of the SSID.
 const (
-	system   = uint32(0)
+	CONNECT = uint8(iota + 1)
+	PUBLISH
+	SUBSCRIBE
+	UNSUBSCRIBE
+	PINGREQ
+	PINGRESP
+	DISCONNECT
+
+	fixed = 16
+
+	// system   = uint32(0)
 	Contract = uint32(3376684800)
-	wildcard = uint32(857445537)
 )
-
-// Ssid represents a subscription ID which contains a contract and a list of hashes
-// for various parts of the topic.
-type Ssid []uint32
-
-// NewSsid creates a new SSID.
-func NewSsid(parts []Part) Ssid{
-	ssid := make([]uint32, 0, len(parts))
-	for _, part := range parts {
-		ssid = append(ssid, part.Query)
-	}
-	return ssid
-}
-
-// AddContract adds contract to the parts.
-func AddContract(contract uint32, c *Topic) {
-	part := Part{
-		Wildchars: 0,
-		Query:     contract,
-	}
-	if c.Parts[0].Query == wildcard {
-		c.Parts[0].Query = contract
-	} else {
-		parts := []Part{part}
-		c.Parts = append(parts, c.Parts...)
-	}
-}
-
-// unsafeToString is used to convert a slice
-// of bytes to a string without incurring overhead.
-func unsafeToString(bs []byte) string {
-	return *(*string)(unsafe.Pointer(&bs))
-}
 
 // ------------------------------------------------------------------------------------
 
@@ -65,92 +40,78 @@ type Subscriber interface {
 	SendMessage(*Message) bool
 }
 
-// ------------------------------------------------------------------------------------
+// // ------------------------------------------------------------------------------------
 
-// Subscribers represents a subscriber set which can contain only unique values.
-type Subscribers []Subscriber
-
-// AddUnique adds a subscriber to the set.
-func (s *Subscribers) AddUnique(value Subscriber) (added bool) {
-	if s.Contains(value) == false {
-		*s = append(*s, value)
-		added = true
-	}
-	return
+// Message represents a message which has to be forwarded or stored.
+type Message struct {
+	// ID      ID     `json:"id,omitempty"`   // The ID of the message
+	Topic   []byte `json:"chan,omitempty"` // The topic of the message
+	Payload []byte `json:"data,omitempty"` // The payload of the message
+	TTL     int64  `json:"ttl,omitempty"`  // The time-to-live of the message
 }
 
-// Remove removes a subscriber from the set.
-func (s *Subscribers) Remove(value Subscriber) (removed bool) {
-	for i, v := range *s {
-		if v == value {
-			a := *s
-			a[i] = a[len(a)-1]
-			a[len(a)-1] = nil
-			a = a[:len(a)-1]
-			*s = a
-			removed = true
-			return
-		}
-	}
-	return
+// Size returns the byte size of the message.
+func (m *Message) Size() int64 {
+	return int64(len(m.Payload))
 }
 
-// Contains checks whether a subscriber is in the set.
-func (s *Subscribers) Contains(value Subscriber) bool {
-	for _, v := range *s {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
+// // ------------------------------------------------------------------------------------
 
-// Counters represents a subscription counting map.
-type Counters struct {
+// Stats represents a subscription map.
+type Stats struct {
 	sync.Mutex
-	stats map[string][][]Part
+	stats map[string]*Stat
 }
 
-// NewCounters creates a new container.
-func NewCounters() *Counters {
-	return &Counters{
-		stats: make(map[string][][]Part),
+type Stat struct {
+	ID      []byte
+	Topic   []byte
+	Counter int
+}
+
+// NewStats creates a new container.
+func NewStats() *Stats {
+	return &Stats{
+		stats: make(map[string]*Stat),
 	}
 }
 
 // Increment adds the subscription to the stats.
-func (s *Counters) Increment(parts []Part, key string) (first bool) {
+func (s *Stats) Increment(topic []byte, key string, id []byte) (first bool) {
 	s.Lock()
 	defer s.Unlock()
 
-	if _, exists := s.stats[key]; exists {
-		return len(s.stats[key]) == 1
+	stat, exists := s.stats[key]
+	if !exists {
+		stat = &Stat{
+			ID:    id,
+			Topic: topic,
+		}
 	}
-	s.stats[key] = append(s.stats[key], parts)
-	return len(s.stats[key]) == 1
+	stat.Counter++
+	s.stats[key] = stat
+	return stat.Counter == 1
 }
 
 // Decrement remove a subscription from the stats.
-func (s *Counters) Decrement(parts []Part, key string) (last bool) {
+func (s *Stats) Decrement(topic []byte, key string) (last bool, id []byte) {
 	s.Lock()
 	defer s.Unlock()
 
-	l := len(s.stats[key])
-	if l > 0 {
-		s.stats[key] = s.stats[key][:l-1]
+	if stat, exists := s.stats[key]; exists {
+		stat.Counter--
+		// Remove if there's no subscribers left
+		if stat.Counter <= 0 {
+			delete(s.stats, key)
+			return true, stat.ID
+		}
 	}
 
-	// Remove if there's no subscribers left
-	if len(s.stats[key]) <= 0 {
-		delete(s.stats, key)
-		return true
-	}
-
-	return false
+	return false, nil
 }
 
 // Get gets subscription from the stats.
-func (s *Counters) Exist(key string) (ok bool) {
+func (s *Stats) Exist(key string) (ok bool) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -161,15 +122,14 @@ func (s *Counters) Exist(key string) (ok bool) {
 }
 
 // All gets the all subscriptions from the stats.
-func (s *Counters) All() [][]Part {
+func (s *Stats) All() []Stat {
 	s.Lock()
 	defer s.Unlock()
-	var parts [][]Part
-	for k, _ := range s.stats {
-		for _, part := range s.stats[k] {
-			parts = append(parts, part)
-		}
+
+	stats := make([]Stat, 0, len(s.stats))
+	for _, stat := range s.stats {
+		stats = append(stats, *stat)
 	}
 
-	return parts
+	return stats
 }

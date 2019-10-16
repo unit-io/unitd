@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 
+	"github.com/saffat-in/trace/message"
 	"github.com/saffat-in/trace/pkg/encoding"
 	"github.com/saffat-in/trace/pkg/hash"
 )
@@ -15,9 +16,15 @@ const (
 	AllowWrite     = uint32(1 << 2)         // Key should be allowed to publish to the topic.
 	AllowReadWrite = AllowRead | AllowWrite // Key should be allowed to read and write to the topic.
 
-	TopicSeparator = '.' // The separator character.
-	encodedLen     = 13  // string encoded len
-	rawLen         = 8   // binary raw len
+	// Topic types
+	TopicInvalid = uint8(iota)
+	TopicStatic
+	TopicWildcard
+
+	TopicKeySeparator = '/'
+	TopicSeparator    = '.' // The separator character.
+	encodedLen        = 13  // string encoded len
+	rawLen            = 8   // binary raw len
 )
 
 // Key errors
@@ -29,6 +36,22 @@ type splitFunc struct{}
 
 func (splitFunc) splitTopic(c rune) bool {
 	return c == TopicSeparator
+}
+
+func (splitFunc) splitKey(c rune) bool {
+	return c == TopicKeySeparator
+}
+
+func (splitFunc) options(c rune) bool {
+	return c == '?'
+}
+
+// Topic represents a parsed topic.
+type Topic struct {
+	Key       []byte // Gets or sets the API key of the topic.
+	Topic     []byte // Gets or sets the topic string.
+	TopicType uint8
+	Size      int // Topic size without options
 }
 
 // Key represents a security key.
@@ -49,9 +72,36 @@ func (k Key) SetPermissions(value uint32) {
 	k[0] = byte(value)
 }
 
+// Target returns the topic (first element of the query, second element of an SSID)
+func (topic *Topic) Target() uint32 {
+	return hash.WithSalt(topic.Topic[:topic.Size], message.Contract)
+}
+
+// ParseKey attempts to parse the key
+func ParseKey(text []byte) (topic *Topic) {
+	topic = new(Topic)
+	var fn splitFunc
+
+	parts := bytes.FieldsFunc(text, fn.splitKey)
+	if parts == nil || len(parts) < 2 {
+		topic.TopicType = TopicInvalid
+		return topic
+	}
+	topic.Key = parts[0]
+	topic.Topic = parts[1]
+	parts = bytes.FieldsFunc(parts[1], fn.options)
+	l := len(parts)
+	if parts == nil || l < 1 {
+		topic.TopicType = TopicInvalid
+		return topic
+	}
+	topic.Size = len(parts[0])
+
+	return topic
+}
+
 // ValidateTopic validates the topic string.
 func (k Key) ValidateTopic(contract uint32, topic []byte) (ok bool, wildcard bool) {
-
 	// var fn splitFunc
 	// Bytes 4-5-6-7 contains target hash
 	target := uint32(k[4])<<24 | uint32(k[5])<<16 | uint32(k[6])<<8 | uint32(k[7])

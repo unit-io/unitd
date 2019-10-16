@@ -6,6 +6,10 @@ import (
 	"github.com/saffat-in/trace/pkg/log"
 )
 
+const (
+	MaxMessageSize = 65536 // Maximum message size allowed from/to the peer.
+)
+
 // Config represents main configuration.
 type Config struct {
 	// Default HTTP(S) address:port to listen on for websocket and long polling clients. Either a

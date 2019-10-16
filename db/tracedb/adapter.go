@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
-	"time"
 
-	"github.com/kelindar/binary"
-	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/pkg/collection"
 	"github.com/saffat-in/trace/pkg/log"
 	"github.com/saffat-in/trace/store"
 	"github.com/saffat-in/tracedb"
+	m "github.com/saffat-in/tracedb/message"
 )
 
 const (
@@ -88,45 +87,82 @@ func (a *adapter) GetName() string {
 	return adapterName
 }
 
-// Store appends the messages to the store.
-func (a *adapter) StoreWithTTL(key, val []byte, TTL time.Duration) error {
+// Put appends the messages to the store.
+func (a *adapter) Put(contract uint32, topic, payload []byte) error {
 	// Start the transaction.
-	// return a.db.PutWithTTL(key, val, TTL)
 	return a.db.Batch(func(b *tracedb.Batch) error {
-		b.Put(key, val)
+		b.PutEntry(&m.Entry{
+			Topic:    topic,
+			Payload:  payload,
+			Contract: contract,
+		})
 		err := b.Write()
 		return err
 	})
 }
 
-// Query performs a query and attempts to fetch last n messages where
+// PutWithID appends the messages to the store using a pre generated messageId.
+func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) error {
+	// Start the transaction.
+	return a.db.Batch(func(b *tracedb.Batch) error {
+		b.PutEntry(&m.Entry{
+			ID:       m.ID(messageId),
+			Topic:    topic,
+			Payload:  payload,
+			Contract: contract,
+		})
+		err := b.Write()
+		return err
+	})
+}
+
+// Get performs a query and attempts to fetch last n messages where
 // n is specified by limit argument. From and until times can also be specified
 // for time-series retrieval.
-func (a *adapter) Query(prefix []byte, ssid message.Ssid, cutoff int64, limit int) (matches []message.Message, err error) {
-	if limit == 0 {
-		limit = maxResults // Maximum number of records to return
-	}
-
+func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches []collection.Payload, err error) {
 	// Iterating over key/value pairs.
-	it, err := a.db.Items(&tracedb.Query{Topic: []byte("dev18?last=3m")})
+	it, err := a.db.Items(&tracedb.Query{Topic: topic, Contract: contract, Limit: uint32(limit)})
 
 	// Seek the prefix and check the key so we can quickly exit the iteration.
-	for it.First(); it.Valid() && message.ID(it.Item().Key()).EvalPrefix(ssid, cutoff) && len(matches) < maxResults && len(matches) < limit; it.Next() {
-		//for it.Seek(prefix); it.Valid(); it.Next() {
-		var msg message.Message
-		err = binary.Unmarshal(it.Item().Value(), &msg)
-		if err != nil {
-			log.Error("adapter.Query", "unable to unmarshal value: "+err.Error())
-			return nil, err
-		}
-		matches = append(matches, msg)
-
-		if err != nil {
+	for it.First(); it.Valid(); it.Next() {
+		if err := it.Error(); err != nil {
 			log.Error("adapter.Query", "unable to query db: "+err.Error())
 			return nil, err
 		}
+		// msg := message.Message{
+		// 	Topic:   topic,
+		// 	Payload: it.Item().Value(),
+		// }
+		matches = append(matches, it.Item().Value())
 	}
 	return matches, nil
+}
+
+// GenID generates a messageId.
+func (a *adapter) GenID(contract uint32, topic, payload []byte) ([]byte, error) {
+	id := m.GenID(&m.Entry{
+		Topic:    topic,
+		Payload:  payload,
+		Contract: contract,
+	})
+	if id == nil {
+		return nil, errors.New("Key is empty.")
+	}
+	return id, nil
+}
+
+// Put appends the messages to the store.
+func (a *adapter) Delete(contract uint32, topic, messageId []byte) error {
+	// Start the transaction.
+	return a.db.Batch(func(b *tracedb.Batch) error {
+		b.DeleteEntry(&m.Entry{
+			ID:       m.ID(messageId),
+			Topic:    topic,
+			Contract: contract,
+		})
+		err := b.Write()
+		return err
+	})
 }
 
 func init() {

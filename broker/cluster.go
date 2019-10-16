@@ -12,6 +12,7 @@ import (
 
 	"github.com/saffat-in/trace/listener"
 	"github.com/saffat-in/trace/message"
+	"github.com/saffat-in/trace/message/security"
 	"github.com/saffat-in/trace/mqtt"
 	rh "github.com/saffat-in/trace/pkg/hash"
 	"github.com/saffat-in/trace/pkg/log"
@@ -86,10 +87,9 @@ type ClusterReq struct {
 	PktSub   *mqtt.Subscribe
 	PktPub   *mqtt.Publish
 	PktUnsub *mqtt.Unsubscribe
-	Topic    *message.Topic
-
-	Type uint8
-	Msg  *message.Message
+	Topic    *security.Topic
+	Type     uint8
+	Msg      *message.Message
 
 	// Originating session
 	Conn *ClusterSess
@@ -104,7 +104,7 @@ type ClusterResp struct {
 	PktPub   *mqtt.Publish
 	PktUnsub *mqtt.Unsubscribe
 	Pkt      []byte
-	Topic    *message.Topic
+	Topic    *security.Topic
 	Msg      *message.Message
 	// Connection ID to forward message to, if any.
 	FromConnID uid.LID
@@ -354,7 +354,7 @@ func (c *Cluster) isRemoteContract(contract string) bool {
 }
 
 // Forward client message to the Master (cluster node which owns the topic)
-func (c *Cluster) routeToContract(pkt mqtt.Packet, topic *message.Topic, msgType uint8, msg *message.Message, conn *Conn) error {
+func (c *Cluster) routeToContract(pkt mqtt.Packet, topic *security.Topic, msgType uint8, msg *message.Message, conn *Conn) error {
 	// Find the cluster node which owns the topic, then forward to it.
 	n := c.nodeForContract(string(conn.clientid.Contract()))
 	if n == nil {

@@ -44,6 +44,7 @@ func (m *keyGenRequest) access() uint32 {
 }
 
 func main() {
+	fmt.Println("connectionstore", hash.WithSalt([]byte("connectionstore"), uint32(3376684800)))
 	fmt.Println("keygen: ", hash.WithSalt([]byte("keygen"), uint32(3376684800)))
 	fmt.Println("presence: ", hash.WithSalt([]byte("presence"), uint32(3376684800)))
 	fmt.Println("clientid: ", hash.WithSalt([]byte("clientid"), uint32(3376684800)))

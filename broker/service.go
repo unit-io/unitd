@@ -12,7 +12,6 @@ import (
 
 	"github.com/saffat-in/trace/config"
 	"github.com/saffat-in/trace/listener"
-	"github.com/saffat-in/trace/message"
 	"github.com/saffat-in/trace/pkg/crypto"
 	"github.com/saffat-in/trace/pkg/log"
 	"github.com/saffat-in/trace/pkg/stats"
@@ -21,39 +20,39 @@ import (
 	"github.com/saffat-in/trace/websocket"
 
 	// Database store
-	_ "github.com/dgraph-io/badger"
+	_ "github.com/saffat-in/trace/db/tracedb"
 	"github.com/saffat-in/trace/store"
 )
 
 //Service is a main struct
 type Service struct {
-	PID           uint32                 // The processid is unique Id for the application
-	MAC           *crypto.MAC            // The MAC to use for decoding and encoding keys.
-	cache         *sync.Map              // The cache for the contracts.
-	context       context.Context        // context for the service
-	config        *config.Config         // The configuration for the service.
-	cancel        context.CancelFunc     // cancellation function
-	start         time.Time              // The service start time
-	subscriptions *message.Subscriptions // The subscription matching trie.
-	http          *http.Server           // The underlying HTTP server.
-	tcp           *tcp.Server            // The underlying TCP server.
-	meter         *Meter                 // The metircs to measure timeseries on mqtt message events
-	stats         *stats.Stats
+	PID     uint32             // The processid is unique Id for the application
+	MAC     *crypto.MAC        // The MAC to use for decoding and encoding keys.
+	cache   *sync.Map          // The cache for the contracts.
+	context context.Context    // context for the service
+	config  *config.Config     // The configuration for the service.
+	cancel  context.CancelFunc // cancellation function
+	start   time.Time          // The service start time
+	// subscriptions *message.Subscriptions // The subscription matching trie.
+	http  *http.Server // The underlying HTTP server.
+	tcp   *tcp.Server  // The underlying TCP server.
+	meter *Meter       // The metircs to measure timeseries on mqtt message events
+	stats *stats.Stats
 }
 
 func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	s = &Service{
-		PID:           uid.NewUnique(),
-		cache:         new(sync.Map),
-		context:       ctx,
-		config:        cfg,
-		cancel:        cancel,
-		start:         time.Now(),
-		subscriptions: message.NewSubscriptions(),
-		http:          new(http.Server),
-		tcp:           new(tcp.Server),
-		meter:         NewMeter(),
+		PID:     uid.NewUnique(),
+		cache:   new(sync.Map),
+		context: ctx,
+		config:  cfg,
+		cancel:  cancel,
+		start:   time.Now(),
+		// subscriptions: message.NewSubscriptions(),
+		http:  new(http.Server),
+		tcp:   new(tcp.Server),
+		meter: NewMeter(),
 
 		stats: stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
 	}

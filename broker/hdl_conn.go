@@ -203,7 +203,10 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Dur("duration", time.Since(start)).Msg("")
 
 	//Parse Key
-	topic := message.ParseKey(mqttTopic)
+	topic := security.ParseKey(mqttTopic)
+	if topic.TopicType == security.TopicInvalid {
+		return types.ErrBadRequest
+	}
 
 	// Attempt to decode the key
 	key, err := security.DecodeKey(topic.Key)
@@ -217,36 +220,28 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 	}
 
 	// Check if the key has the permission for the topic
-	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic)
+	ok, _ := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
 	if !ok {
 		return types.ErrUnauthorized
 	}
 
-	// Parse the topic
-	topic.Parse(c.clientid.Contract(), wildcard)
-	if topic.TopicType == message.TopicInvalid {
-		return types.ErrBadRequest
-	}
-
-	// Add contract to the parts
-	message.AddContract(c.clientid.Contract(), topic)
 	c.subscribe(pkt, topic)
 
 	// In case of ttl, store messages to database
-	if t0, t1, limit, ok := topic.Last(); ok {
-		ssid := message.NewSsid(topic.Parts)
-		msgs, err := store.Message.Query(ssid, t0, t1, int(limit))
-		if err != nil {
-			log.Error("conn.OnSubscribe", "query last messages"+err.Error())
-			return types.ErrServerError
-		}
-
-		// Range over the messages in the channel and forward them
-		for _, m := range msgs {
-			msg := m // Copy message
-			c.SendMessage(&msg)
-		}
+	// if t0, t1, limit, ok := topic.Last(); ok {
+	// 	ssid := message.NewSsid(topic.Parts)
+	msgs, err := store.Message.Get(c.clientid.Contract(), topic.Topic)
+	if err != nil {
+		log.Error("conn.OnSubscribe", "query last messages"+err.Error())
+		return types.ErrServerError
 	}
+
+	// Range over the messages in the channel and forward them
+	for _, m := range msgs {
+		msg := m // Copy message
+		c.SendMessage(&msg)
+	}
+	// }
 
 	return nil
 }
@@ -259,7 +254,10 @@ func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Err
 	defer log.ErrLogger.Debug().Str("context", "conn.onUnsubscribe").Dur("duration", time.Since(start)).Msg("")
 
 	//Parse the key
-	topic := message.ParseKey(mqttTopic)
+	topic := security.ParseKey(mqttTopic)
+	if topic.TopicType == security.TopicInvalid {
+		return types.ErrBadRequest
+	}
 
 	// Attempt to decode the key
 	key, err := security.DecodeKey(topic.Key)
@@ -273,19 +271,11 @@ func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Err
 	}
 
 	// Check if the key has the permission for the topic
-	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic)
+	ok, _ := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
 	if !ok {
 		return types.ErrUnauthorized
 	}
 
-	// Parse the topic
-	topic.Parse(c.clientid.Contract(), wildcard)
-	if topic.TopicType == message.TopicInvalid {
-		return types.ErrBadRequest
-	}
-
-	// Add contract to the parts
-	message.AddContract(c.clientid.Contract(), topic)
 	c.unsubscribe(pkt, topic)
 
 	return nil
@@ -297,10 +287,13 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Dur("duration", time.Since(start)).Msg("")
 
 	//Parse the Key
-	topic := message.ParseKey(mqttTopic)
+	topic := security.ParseKey(mqttTopic)
+	if topic.TopicType == security.TopicInvalid {
+		return types.ErrBadRequest
+	}
+
 	// Check whether the key is 'trace' which means it's an API request
 	if len(topic.Key) == 5 && string(topic.Key) == "trace" {
-		topic.Parse(message.Contract, false)
 		c.onTraceRequest(topic, payload)
 		return nil
 	}
@@ -317,7 +310,7 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 	}
 
 	// Check if the key has the permission for the topic
-	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic)
+	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
 	if !ok {
 		return types.ErrUnauthorized
 	}
@@ -326,48 +319,20 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return types.ErrForbidden
 	}
 
-	// Parse the topic
-	topic.Parse(c.clientid.Contract(), false)
-	if topic.TopicType == message.TopicInvalid {
-		return types.ErrBadRequest
-	}
-
-	// Publish should only have static topic strings
-	if topic.TopicType != message.TopicStatic {
-		return types.ErrForbidden
-	}
-
-	// Add contract to the parts
-	message.AddContract(c.clientid.Contract(), topic)
-	ssid := message.NewSsid(topic.Parts)
-
-	// Create a new message
-	msg := message.New(
-		ssid,
-		topic.Topic,
-		payload,
-	)
-
-	// In case of ttl, add ttl to the msg and store to the db
-	if ttl, ok := topic.TTL(); ok {
-		//1410065408 10 sec
-		msg.TTL = ttl // Add the TTL to the message
-		store.Message.Store(msg)
-	}
-
+	store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
 	// Iterate through all subscribers and send them the message
-	c.publish(pkt, topic, msg)
+	c.publish(pkt, topic, payload)
 
 	return nil
 }
 
 // onSpecialRequest processes an special request.
-func (c *Conn) onTraceRequest(topic *message.Topic, payload []byte) (ok bool) {
+func (c *Conn) onTraceRequest(topic *security.Topic, payload []byte) (ok bool) {
 	var resp interface{}
 	defer func() {
 		if b, err := json.Marshal(resp); err == nil {
 			c.SendMessage(&message.Message{
-				Topic:   []byte("trace/" + string(topic.Topic)),
+				Topic:   []byte("trace/" + string(topic.Topic[:topic.Size])),
 				Payload: b,
 			})
 		}
@@ -375,7 +340,7 @@ func (c *Conn) onTraceRequest(topic *message.Topic, payload []byte) (ok bool) {
 
 	// Check query
 	resp = types.ErrNotFound
-	if len(topic.Parts) < 1 {
+	if len(topic.Topic[:topic.Size]) < 1 {
 		return
 	}
 

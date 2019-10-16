@@ -5,7 +5,7 @@
     <title>Go Websocket</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
     <script type="text/javascript">
-        client = new Paho.MQTT.Client("127.0.01", 6060, "");
+        client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ");
         // set callback handlers
 client.onConnectionLost = onConnectionLost;
 client.onMessageArrived = onMessageArrived;
@@ -21,18 +21,18 @@ function onConnect() {
   // message = new Paho.MQTT.Message(payload);
   // message.destinationName = "trace/clientid";
   // client.send(message);
-    //  payload = JSON.stringify({"topic":"dev18.*.india.maharashtra.*.*.gagan.*","type":"rw"});
-    //  message = new Paho.MQTT.Message(payload);
-    //  message.destinationName = "trace/keygen";
-    //  client.send(message);
-    //  payload = JSON.stringify({"topic":"dev18","type":"rw"});
-    //  message = new Paho.MQTT.Message(payload);
-    //  message.destinationName = "trace/keygen";
-    //  client.send(message);
-  client.subscribe("AZMQMWMAcKFKW/dev18.*.india.maharashtra.*.*.gagan.*?last=10");
+  //    payload = JSON.stringify({"topic":"dev18.*.india.maharashtra.*.*.gagan.*","type":"rw"});
+  //    message = new Paho.MQTT.Message(payload);
+  //    message.destinationName = "trace/keygen";
+  //    client.send(message);
+  //    payload = JSON.stringify({"topic":"dev18","type":"rw"});
+  //    message = new Paho.MQTT.Message(payload);
+  //    message.destinationName = "trace/keygen";
+  //    client.send(message);
+  client.subscribe("AZMQMWPDRPaPG/dev18.*.india.maharashtra.*.*.gagan.*?last=10");
   for (i = 0; i < 70; i++) {
   message = new Paho.MQTT.Message("Hi dev18!");
-  message.destinationName = "AbAANQBCOfdbW/dev18";
+  message.destinationName = "AbAANQAPMbGHG/dev18";
   client.send(message); 
   }
 }
