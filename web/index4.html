@@ -26,7 +26,7 @@ function onConnect() {
     //  message.destinationName = "trace/keygen";
     //  client.send(message);
   client.subscribe("AbYANcAZedQRU/dev18.world.india");
-  for (i = 0; i < 70; i++) { 
+  for (i = 0; i < 1; i++) { 
     message = new Paho.MQTT.Message("Hello India!");
   message.destinationName = "AbYANcAZedQRU/dev18.world.india?ttl=3m";
   client.send(message);

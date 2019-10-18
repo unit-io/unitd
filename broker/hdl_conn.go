@@ -227,6 +227,7 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 
 	c.subscribe(pkt, topic)
 
+	log.ErrLogger.Debug().Str("context", "conn.OnSubscribe").Msgf("contract %d", c.clientid.Contract())
 	// In case of ttl, store messages to database
 	// if t0, t1, limit, ok := topic.Last(); ok {
 	// 	ssid := message.NewSsid(topic.Parts)
@@ -319,6 +320,7 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return types.ErrForbidden
 	}
 
+	log.ErrLogger.Debug().Str("context", "conn.OnPublish").Msgf("contract %d", c.clientid.Contract())
 	store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, topic, payload)

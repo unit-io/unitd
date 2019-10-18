@@ -132,19 +132,20 @@ func (m *MessageStore) Get(contract uint32, topic []byte) (matches []message.Mes
 }
 
 // ConnectionStore is a Conection struct to hold methods for persistence mapping for the Connect LId.
+// Note, do not use same contract as messagestore
 type ConnectionStore struct{}
 
 // Message is the ancor for storing/retrieving Message objects
 var Connection ConnectionStore
 
-func (c *ConnectionStore) Put(topic []byte, messageId []byte, connId uid.LID) error {
+func (c *ConnectionStore) Put(contract uint32, topic []byte, messageId []byte, connId uid.LID) error {
 	payload := make([]byte, 8)
 	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
-	return adp.PutWithID(connStoreId, topic, messageId, payload)
+	return adp.PutWithID(contract^connStoreId, topic, messageId, payload)
 }
 
-func (c *ConnectionStore) Get(topic []byte) (matches []uid.LID, err error) {
-	resp, err := adp.Get(connStoreId, topic, maxResults)
+func (c *ConnectionStore) Get(contract uint32, topic []byte) (matches []uid.LID, err error) {
+	resp, err := adp.Get(contract^connStoreId, topic, maxResults)
 	for _, payload := range resp {
 		matches = append(matches, uid.LID(binary.LittleEndian.Uint64(payload[:])))
 	}
@@ -152,12 +153,12 @@ func (c *ConnectionStore) Get(topic []byte) (matches []uid.LID, err error) {
 	return matches, err
 }
 
-func (c *ConnectionStore) GenID(topic []byte, connId uid.LID) ([]byte, error) {
+func (c *ConnectionStore) GenID(contract uint32, topic []byte, connId uid.LID) ([]byte, error) {
 	payload := make([]byte, 8)
 	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
-	return adp.GenID(connStoreId, topic, payload)
+	return adp.GenID(contract^connStoreId, topic, payload)
 }
 
-func (c *ConnectionStore) Delete(topic []byte, messageId []byte) error {
-	return adp.Delete(connStoreId, topic, messageId)
+func (c *ConnectionStore) Delete(contract uint32, topic []byte, messageId []byte) error {
+	return adp.Delete(contract^connStoreId, topic, messageId)
 }

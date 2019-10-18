@@ -147,13 +147,13 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error)
 		}
 		// Add the subscription to Counters
 	} else {
-		messageId, err := store.Connection.GenID(topic.Topic, c.connid)
+		messageId, err := store.Connection.GenID(c.clientid.Contract(), topic.Topic, c.connid)
 		if err != nil {
 			return err
 		}
 		if first := c.subs.Increment(topic.Topic[:topic.Size], key, messageId); first {
 			// Subscribe the subscriber
-			if err = store.Connection.Put(topic.Topic, messageId, c.connid); err != nil {
+			if err = store.Connection.Put(c.clientid.Contract(), topic.Topic, messageId, c.connid); err != nil {
 				log.ErrLogger.Error().Str("context", "conn.subscribe").Msgf("unable to subscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to subscribe
 				return err
 			}
@@ -173,7 +173,7 @@ func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err er
 	// Remove the subscription from stats and if there's no more subscriptions, notify everyone.
 	if last, messageId := c.subs.Decrement(topic.Topic[:topic.Size], key); last {
 		// Unsubscribe the subscriber
-		if err = store.Connection.Delete(topic.Topic[:topic.Size], messageId); err != nil {
+		if err = store.Connection.Delete(c.clientid.Contract(), topic.Topic[:topic.Size], messageId); err != nil {
 			log.ErrLogger.Error().Str("context", "conn.unsubscribe").Msgf("unable to unsubscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to unsubscribe
 			return err
 		}
@@ -197,7 +197,7 @@ func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte)
 	// subsciption count
 	scount := 0
 
-	conns, err := store.Connection.Get(topic.Topic)
+	conns, err := store.Connection.Get(c.clientid.Contract(), topic.Topic)
 	if err != nil {
 		return err
 	}
@@ -206,6 +206,7 @@ func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte)
 		Payload: payload,
 	}
 	for _, connid := range conns {
+		log.ErrLogger.Debug().Str("context", "conn.publish").Msgf("connid %d", c.connid)
 		sub := Globals.ConnCache.Get(connid)
 		if sub != nil {
 			if !sub.SendMessage(m) {
@@ -246,7 +247,7 @@ func (c *Conn) notifyError(err *types.Error, messageID uint16) {
 
 func (c *Conn) unsubAll() {
 	for _, stat := range c.subs.All() {
-		store.Connection.Delete(stat.Topic, stat.ID)
+		store.Connection.Delete(c.clientid.Contract(), stat.Topic, stat.ID)
 	}
 }
 
@@ -261,7 +262,7 @@ func (c *Conn) close() error {
 	// Don't close clustered connection, their servers are not being shut down.
 	if c.clnode == nil {
 		for _, stat := range c.subs.All() {
-			store.Connection.Delete(stat.Topic, stat.ID)
+			store.Connection.Delete(c.clientid.Contract(), stat.Topic, stat.ID)
 			// Decrement the subscription counter
 			c.service.meter.Subscriptions.Dec(1)
 		}
