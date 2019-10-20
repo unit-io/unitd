@@ -89,31 +89,23 @@ func (a *adapter) GetName() string {
 
 // Put appends the messages to the store.
 func (a *adapter) Put(contract uint32, topic, payload []byte) error {
-	// Start the transaction.
-	return a.db.Batch(func(b *tracedb.Batch) error {
-		b.PutEntry(&m.Entry{
-			Topic:    topic,
-			Payload:  payload,
-			Contract: contract,
-		})
-		err := b.Write()
-		return err
+	err := a.db.PutEntry(&m.Entry{
+		Topic:    topic,
+		Payload:  payload,
+		Contract: contract,
 	})
+	return err
 }
 
 // PutWithID appends the messages to the store using a pre generated messageId.
 func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) error {
-	// Start the transaction.
-	return a.db.Batch(func(b *tracedb.Batch) error {
-		b.PutEntry(&m.Entry{
-			ID:       m.ID(messageId),
-			Topic:    topic,
-			Payload:  payload,
-			Contract: contract,
-		})
-		err := b.Write()
-		return err
+	err := a.db.PutEntry(&m.Entry{
+		ID:       m.ID(messageId),
+		Topic:    topic,
+		Payload:  payload,
+		Contract: contract,
 	})
+	return err
 }
 
 // Get performs a query and attempts to fetch last n messages where
@@ -122,17 +114,15 @@ func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) e
 func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches []collection.Payload, err error) {
 	// Iterating over key/value pairs.
 	it, err := a.db.Items(&tracedb.Query{Topic: topic, Contract: contract, Limit: uint32(limit)})
-
+	if err != nil {
+		return nil, err
+	}
 	// Seek the prefix and check the key so we can quickly exit the iteration.
 	for it.First(); it.Valid(); it.Next() {
 		if err := it.Error(); err != nil {
 			log.Error("adapter.Query", "unable to query db: "+err.Error())
 			return nil, err
 		}
-		// msg := message.Message{
-		// 	Topic:   topic,
-		// 	Payload: it.Item().Value(),
-		// }
 		matches = append(matches, it.Item().Value())
 	}
 	return matches, nil
@@ -153,16 +143,12 @@ func (a *adapter) GenID(contract uint32, topic, payload []byte) ([]byte, error) 
 
 // Put appends the messages to the store.
 func (a *adapter) Delete(contract uint32, topic, messageId []byte) error {
-	// Start the transaction.
-	return a.db.Batch(func(b *tracedb.Batch) error {
-		b.DeleteEntry(&m.Entry{
-			ID:       m.ID(messageId),
-			Topic:    topic,
-			Contract: contract,
-		})
-		err := b.Write()
-		return err
+	err := a.db.DeleteEntry(&m.Entry{
+		ID:       m.ID(messageId),
+		Topic:    topic,
+		Contract: contract,
 	})
+	return err
 }
 
 func init() {

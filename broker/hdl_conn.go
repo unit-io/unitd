@@ -165,7 +165,7 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 // onConnect is a handler for MQTT Connect events.
 func (c *Conn) onConnect(clientID []byte) (uid.ID, *types.Error) {
 	start := time.Now()
-	defer log.ErrLogger.Debug().Str("context", "conn.onConnect").Dur("duration", time.Since(start)).Msg("")
+	defer log.ErrLogger.Debug().Str("context", "conn.onConnect").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 	var clientid = uid.ID{}
 	if clientID != nil && len(clientID) > c.service.MAC.Overhead() {
 		if contract, ok := c.service.cache.Load(crypto.SignatureToUint32(clientID[crypto.EpochSize:crypto.MessageOffset])); ok {
@@ -200,7 +200,7 @@ func (c *Conn) onConnect(clientID []byte) (uid.ID, *types.Error) {
 // onSubscribe is a handler for MQTT Subscribe events.
 func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 	start := time.Now()
-	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Dur("duration", time.Since(start)).Msg("")
+	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse Key
 	topic := security.ParseKey(mqttTopic)
@@ -227,10 +227,7 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 
 	c.subscribe(pkt, topic)
 
-	log.ErrLogger.Debug().Str("context", "conn.OnSubscribe").Msgf("contract %d", c.clientid.Contract())
-	// In case of ttl, store messages to database
 	// if t0, t1, limit, ok := topic.Last(); ok {
-	// 	ssid := message.NewSsid(topic.Parts)
 	msgs, err := store.Message.Get(c.clientid.Contract(), topic.Topic)
 	if err != nil {
 		log.Error("conn.OnSubscribe", "query last messages"+err.Error())
@@ -252,7 +249,7 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 // onUnsubscribe is a handler for MQTT Unsubscribe events.
 func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Error {
 	start := time.Now()
-	defer log.ErrLogger.Debug().Str("context", "conn.onUnsubscribe").Dur("duration", time.Since(start)).Msg("")
+	defer log.ErrLogger.Debug().Str("context", "conn.onUnsubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse the key
 	topic := security.ParseKey(mqttTopic)
@@ -285,7 +282,7 @@ func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Err
 // OnPublish is a handler for MQTT Publish events.
 func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *types.Error {
 	start := time.Now()
-	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Dur("duration", time.Since(start)).Msg("")
+	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse the Key
 	topic := security.ParseKey(mqttTopic)
@@ -320,7 +317,6 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return types.ErrForbidden
 	}
 
-	log.ErrLogger.Debug().Str("context", "conn.OnPublish").Msgf("contract %d", c.clientid.Contract())
 	store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, topic, payload)

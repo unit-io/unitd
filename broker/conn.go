@@ -142,19 +142,19 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error)
 	} else if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The contract is handled by a remote node. Forward message to it.
 		if err := Globals.Cluster.routeToContract(pkt, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.subscribe").Msgf("unable to subscribe to remote topic %v '%v'", err, c.connid)
+			log.ErrLogger.Err(err).Str("context", "conn.subscribe").Int64("connid", int64(c.connid)).Msg("unable to subscribe to remote topic")
 			return err
 		}
 		// Add the subscription to Counters
 	} else {
 		messageId, err := store.Connection.GenID(c.clientid.Contract(), topic.Topic, c.connid)
 		if err != nil {
-			return err
+			log.ErrLogger.Err(err).Str("context", "conn.subscribe")
 		}
 		if first := c.subs.Increment(topic.Topic[:topic.Size], key, messageId); first {
 			// Subscribe the subscriber
 			if err = store.Connection.Put(c.clientid.Contract(), topic.Topic, messageId, c.connid); err != nil {
-				log.ErrLogger.Error().Str("context", "conn.subscribe").Msgf("unable to subscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to subscribe
+				log.ErrLogger.Err(err).Str("context", "conn.subscribe").Str("topic", string(topic.Topic[:topic.Size])).Int64("connid", int64(c.connid)).Msg("unable to subscribe to topic") // Unable to subscribe
 				return err
 			}
 			// Increment the subscription counter
@@ -174,7 +174,7 @@ func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err er
 	if last, messageId := c.subs.Decrement(topic.Topic[:topic.Size], key); last {
 		// Unsubscribe the subscriber
 		if err = store.Connection.Delete(c.clientid.Contract(), topic.Topic[:topic.Size], messageId); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.unsubscribe").Msgf("unable to unsubscribe to topic %s: %v '%v'", string(topic.Topic[:topic.Size]), err, c.connid) // Unable to unsubscribe
+			log.ErrLogger.Err(err).Str("context", "conn.unsubscribe").Str("topic", string(topic.Topic[:topic.Size])).Int64("connid", int64(c.connid)).Msg("unable to unsubscribe to topic") // Unable to subscribe
 			return err
 		}
 		// Decrement the subscription counter
@@ -183,7 +183,7 @@ func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err er
 	if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The topic is handled by a remote node. Forward message to it.
 		if err := Globals.Cluster.routeToContract(pkt, topic, message.UNSUBSCRIBE, &message.Message{}, c); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.unsubscribe").Msgf("unable to unsubscribe to remote topic %v '%v'", err, c.connid)
+			log.ErrLogger.Err(err).Str("context", "conn.unsubscribe").Int64("connid", int64(c.connid)).Msg("unable to unsubscribe to remote topic")
 			return err
 		}
 	}
@@ -199,14 +199,13 @@ func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte)
 
 	conns, err := store.Connection.Get(c.clientid.Contract(), topic.Topic)
 	if err != nil {
-		return err
+		log.ErrLogger.Err(err).Str("context", "conn.publish")
 	}
 	m := &message.Message{
 		Topic:   topic.Topic[:topic.Size],
 		Payload: payload,
 	}
 	for _, connid := range conns {
-		log.ErrLogger.Debug().Str("context", "conn.publish").Msgf("connid %d", c.connid)
 		sub := Globals.ConnCache.Get(connid)
 		if sub != nil {
 			if !sub.SendMessage(m) {
@@ -220,7 +219,7 @@ func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte)
 
 	if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		if err = Globals.Cluster.routeToContract(pkt, topic, message.PUBLISH, m, c); err != nil {
-			log.ErrLogger.Error().Str("context", "conn.publish").Msgf("unable to publish to remote topic %v '%v'", err, c.connid)
+			log.ErrLogger.Err(err).Str("context", "conn.publish").Int64("connid", int64(c.connid)).Msg("unable to publish to remote topic")
 		}
 	}
 	return err
@@ -269,7 +268,7 @@ func (c *Conn) close() error {
 	}
 
 	Globals.ConnCache.Delete(c.connid)
-	defer log.ConnLogger.Info().Str("context", "conn.close").Msgf("closed '%v'", c.connid)
+	defer log.ConnLogger.Info().Str("context", "conn.close").Int64("connid", int64(c.connid)).Msg("conn closed")
 	Globals.Cluster.connGone(c)
 	// Decrement the connection counter
 	c.service.meter.Connections.Dec(1)
