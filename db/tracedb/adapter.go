@@ -9,7 +9,6 @@ import (
 	"github.com/saffat-in/trace/pkg/log"
 	"github.com/saffat-in/trace/store"
 	"github.com/saffat-in/tracedb"
-	m "github.com/saffat-in/tracedb/message"
 )
 
 const (
@@ -89,7 +88,7 @@ func (a *adapter) GetName() string {
 
 // Put appends the messages to the store.
 func (a *adapter) Put(contract uint32, topic, payload []byte) error {
-	err := a.db.PutEntry(&m.Entry{
+	err := a.db.PutEntry(&tracedb.Entry{
 		Topic:    topic,
 		Payload:  payload,
 		Contract: contract,
@@ -99,8 +98,8 @@ func (a *adapter) Put(contract uint32, topic, payload []byte) error {
 
 // PutWithID appends the messages to the store using a pre generated messageId.
 func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) error {
-	err := a.db.PutEntry(&m.Entry{
-		ID:       m.ID(messageId),
+	err := a.db.PutEntry(&tracedb.Entry{
+		ID:       messageId,
 		Topic:    topic,
 		Payload:  payload,
 		Contract: contract,
@@ -130,11 +129,7 @@ func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches []colle
 
 // GenID generates a messageId.
 func (a *adapter) GenID(contract uint32, topic, payload []byte) ([]byte, error) {
-	id := m.GenID(&m.Entry{
-		Topic:    topic,
-		Payload:  payload,
-		Contract: contract,
-	})
+	id := a.db.GenID()
 	if id == nil {
 		return nil, errors.New("Key is empty.")
 	}
@@ -143,8 +138,8 @@ func (a *adapter) GenID(contract uint32, topic, payload []byte) ([]byte, error) 
 
 // Put appends the messages to the store.
 func (a *adapter) Delete(contract uint32, topic, messageId []byte) error {
-	err := a.db.DeleteEntry(&m.Entry{
-		ID:       m.ID(messageId),
+	err := a.db.DeleteEntry(&tracedb.Entry{
+		ID:       messageId,
 		Topic:    topic,
 		Contract: contract,
 	})

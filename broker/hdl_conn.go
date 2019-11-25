@@ -317,7 +317,11 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return types.ErrForbidden
 	}
 
-	store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
+	err = store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
+	if err != nil {
+		log.Error("conn.onPublish", "store message "+err.Error())
+		return types.ErrServerError
+	}
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, topic, payload)
 

@@ -21,10 +21,10 @@ function onConnect() {
   //    message = new Paho.MQTT.Message(payload);
   //    message.destinationName = "trace/keygen";
   //    client.send(message);
-  client.subscribe("AbYANcFQdYSIG/dev20.world.india?last=3m");
+  client.subscribe("AbYANcAZedQRU/dev18.world.india?last=3m");
   for (i = 0; i < 1; i++) {
   message = new Paho.MQTT.Message("Hello India!");
-  message.destinationName = "AbYANcFQdYSIG/dev20.world.india";
+  message.destinationName = "AbYANcAZedQRU/dev18.world.india";
   client.send(message);
   }
 }
