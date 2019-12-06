@@ -43,8 +43,8 @@ type Adapter interface {
 	// for time-series retrieval.
 	Get(contract uint32, topic []byte, limit int) ([]collection.Payload, error)
 
-	// GenID generate messageId that can later used to delete message from message store
-	GenID(contract uint32, topic, payload []byte) ([]byte, error)
+	// NewID generate messageId that can later used to store and delete message from message store
+	NewID(contract uint32, topic, payload []byte) ([]byte, error)
 
 	// Delete is used to delete entry, the SSID provided must be a full SSID
 	// SSID, where first element should be a contract ID. The function is executed synchronously and

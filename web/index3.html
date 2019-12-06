@@ -28,7 +28,7 @@ function onConnect() {
   client.subscribe("AZIQMUJMIVVNK/dev18.*.india.*.*.*.gagan.*");
   for (i = 0; i < 100; i++) {
   message = new Paho.MQTT.Message("Hello india!");
-  message.destinationName = "AbYANcAZedQRU/dev18.world.india?ttl=1m";
+  message.destinationName = "AbYANcAZedQRU/dev18.world.india?ttl=3m";
   client.send(message);
   }
 }

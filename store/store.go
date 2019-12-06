@@ -153,10 +153,10 @@ func (c *ConnectionStore) Get(contract uint32, topic []byte) (matches []uid.LID,
 	return matches, err
 }
 
-func (c *ConnectionStore) GenID(contract uint32, topic []byte, connId uid.LID) ([]byte, error) {
+func (c *ConnectionStore) NewID(contract uint32, topic []byte, connId uid.LID) ([]byte, error) {
 	payload := make([]byte, 8)
 	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
-	return adp.GenID(contract^connStoreId, topic, payload)
+	return adp.NewID(contract^connStoreId, topic, payload)
 }
 
 func (c *ConnectionStore) Delete(contract uint32, topic []byte, messageId []byte) error {

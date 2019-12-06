@@ -127,9 +127,9 @@ func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches []colle
 	return matches, nil
 }
 
-// GenID generates a messageId.
-func (a *adapter) GenID(contract uint32, topic, payload []byte) ([]byte, error) {
-	id := a.db.GenID()
+// NewID generates a new messageId.
+func (a *adapter) NewID(contract uint32, topic, payload []byte) ([]byte, error) {
+	id := a.db.NewID()
 	if id == nil {
 		return nil, errors.New("Key is empty.")
 	}
