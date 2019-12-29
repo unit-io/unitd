@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/saffat-in/trace/message"
-	"github.com/saffat-in/trace/pkg/encoding"
-	"github.com/saffat-in/trace/pkg/hash"
+	"github.com/unit-io/trace/message"
+	"github.com/unit-io/trace/pkg/encoding"
+	"github.com/unit-io/trace/pkg/hash"
 )
 
 // Access types for a security key.

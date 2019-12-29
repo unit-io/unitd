@@ -5,10 +5,10 @@ import (
 	"errors"
 	"os"
 
-	"github.com/saffat-in/trace/pkg/collection"
-	"github.com/saffat-in/trace/pkg/log"
-	"github.com/saffat-in/trace/store"
-	"github.com/saffat-in/tracedb"
+	"github.com/unit-io/trace/pkg/collection"
+	"github.com/unit-io/trace/pkg/log"
+	"github.com/unit-io/trace/store"
+	"github.com/unit-io/tracedb"
 )
 
 const (

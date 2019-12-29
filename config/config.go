@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/saffat-in/trace/pkg/log"
+	"github.com/unit-io/trace/pkg/log"
 )
 
 const (

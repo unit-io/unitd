@@ -10,18 +10,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/saffat-in/trace/config"
-	"github.com/saffat-in/trace/listener"
-	"github.com/saffat-in/trace/pkg/crypto"
-	"github.com/saffat-in/trace/pkg/log"
-	"github.com/saffat-in/trace/pkg/stats"
-	"github.com/saffat-in/trace/pkg/tcp"
-	"github.com/saffat-in/trace/pkg/uid"
-	"github.com/saffat-in/trace/websocket"
+	"github.com/unit-io/trace/config"
+	"github.com/unit-io/trace/listener"
+	"github.com/unit-io/trace/pkg/crypto"
+	"github.com/unit-io/trace/pkg/log"
+	"github.com/unit-io/trace/pkg/stats"
+	"github.com/unit-io/trace/pkg/tcp"
+	"github.com/unit-io/trace/pkg/uid"
+	"github.com/unit-io/trace/websocket"
 
 	// Database store
-	_ "github.com/saffat-in/trace/db/tracedb"
-	"github.com/saffat-in/trace/store"
+	_ "github.com/unit-io/trace/db/tracedb"
+	"github.com/unit-io/trace/store"
 )
 
 //Service is a main struct

@@ -3,7 +3,7 @@ package adapter
 import (
 	"errors"
 
-	"github.com/saffat-in/trace/pkg/collection"
+	"github.com/unit-io/trace/pkg/collection"
 )
 
 var (

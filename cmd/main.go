@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/saffat-in/trace/message/security"
-	"github.com/saffat-in/trace/pkg/hash"
+	"github.com/unit-io/trace/message/security"
+	"github.com/unit-io/trace/pkg/hash"
 )
 
 const (

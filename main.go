@@ -9,9 +9,9 @@ import (
 	"time"
 
 	jcr "github.com/DisposaBoy/JsonConfigReader"
-	"github.com/saffat-in/trace/broker"
-	"github.com/saffat-in/trace/config"
-	"github.com/saffat-in/trace/pkg/log"
+	"github.com/unit-io/trace/broker"
+	"github.com/unit-io/trace/config"
+	"github.com/unit-io/trace/pkg/log"
 	"github.com/rs/zerolog"
 )
 
