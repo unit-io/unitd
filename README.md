@@ -19,7 +19,7 @@ To build trace from source code use go get command.
 
 ## Usage
 
-Files under web folder has various usage examples. Code snippet is given below to use trace messaging broker with web socket and javascript client.
+Files under examples folder has various usage examples. Code snippet is given below to use trace messaging broker with web socket and javascript client.
 
 You need to register a client id and request key in order to publish or subscribe to a topic.
 
@@ -74,7 +74,7 @@ Now use secondary client Id to publish and subscribe messages. To publish and su
 function onConnect() {
   // Once a connection has been made, send payload to request key to publish or subscribe a topic. Pass "rw" to the Type field to read and write to the topic.
   console.log("onConnect");
-    payload = JSON.stringify({"topic":"dev18.world","type":"rw"});
+    payload = JSON.stringify({"topic":"unit.b","type":"rw"});
     message = new Paho.MQTT.Message(payload);
     message.destinationName = "tace/keygen";
     client.send(message);
@@ -87,9 +87,9 @@ Now you can publish and subscribe to the topic using a valid key.
 function onConnect() {
   // Once a connection has been made, publish and subscribe to a topic and use a valid key. Topics are separated by "." character, use * as wildcard character.
   console.log("onConnect");
-   client.subscribe("EbQCNYBTTSJFO/dev18.world");
-   message = new Paho.MQTT.Message("Hello World!");
-   message.destinationName = "EbQCNYBTTSJFO/dev18.world";
+   client.subscribe("AbQANYFHQWEQe/unit.b");
+   message = new Paho.MQTT.Message("Hello unit.b!");
+   message.destinationName = "AbQANYFHQWEQe/unit.b";
    client.send(message);
 }
 ```
@@ -97,19 +97,19 @@ function onConnect() {
 Use dot '.' character as topic separator and use three dots '...' at the end to subscribe to all topics following the path. Use '*' character to subscibe to single wildcard topic.
 
 Following are valid topic subsriptions:
-- "EYACMAAVDOZKC/..."
-- "EZQCMYAUEFbLe/dev18.world..."
-- "EZISMUJQBPAWK/dev18.&ast;.usa.&ast;.&ast;.&ast;.empire-state.&ast;"
+- "AYAAMACRZDCHK/..."
+- "AZQAMYGSIFROC/unit.b..."
+- "AZMQMWJcLOfIA/unit.&ast;.b1.&ast;.&ast;.&ast;.b11111.&ast;"
 
-You could now send messages to empire-state tenants:
-- "EbfaNfbYdFTMI/dev18.world.usa.newyork.nyc.manhattan.empire-state.tenant1"
+You could now send messages to tenant b111111:
+- "AbfYNfYAXDSCa/unit.b.b1.b11.b111.b1111.b11111.b111111"
 ```
 // called when the client connects
 function onConnect() {
   // Once a connection has been made, publish and subscribe to a topic and use a valid key.
   console.log("onConnect");
-   message = new Paho.MQTT.Message("Hello Tenant1!");
-   message.destinationName = "EbfaNfbYdFTMI/dev18.world.usa.newyork.nyc.manhattan.empire-state.tenant1;
+   message = new Paho.MQTT.Message("Hello b111111!");
+   message.destinationName = "AbfYNfYAXDSCa/unit.b.b1.b11.b111.b1111.b11111.b111111;
    client.send(message);
 }
 ```

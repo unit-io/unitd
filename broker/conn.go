@@ -147,7 +147,7 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error)
 		}
 		// Add the subscription to Counters
 	} else {
-		messageId, err := store.Connection.NewID(c.clientid.Contract(), topic.Topic, c.connid)
+		messageId, err := store.Connection.NewID()
 		if err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.subscribe")
 		}

@@ -5,7 +5,7 @@
     <title>Go Websocket</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
     <script type="text/javascript">
-        client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDYQXcNbAYeZHbKfZUBWOabEbSSBBdacSGaSMPCZKfYEUYSQA");
+        client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ");
         // set callback handlers
 client.onConnectionLost = onConnectionLost;
 client.onMessageArrived = onMessageArrived;
@@ -17,16 +17,20 @@ client.connect({onSuccess:onConnect});
 function onConnect() {
   // Once a connection has been made, make a subscription and send a message.
   console.log("onConnect");
-  //  payload = JSON.stringify({"topic":"dev18.world","type":"rw"});
+  // payload = JSON.stringify({"type":"id"});
+  // message = new Paho.MQTT.Message(payload);
+  // message.destinationName = "trace/clientid";
+  // client.send(message);
+  //    payload = JSON.stringify({"topic":"unit.b.b1","type":"rw"});
   //    message = new Paho.MQTT.Message(payload);
   //    message.destinationName = "trace/keygen";
   //    client.send(message);
-  client.subscribe("AbQANYHcEKXLa/dev18.world");
-  for (i = 0; i < 70; i++) {
-  message = new Paho.MQTT.Message("Hello World!");
-  message.destinationName = "AbQANYHcEKXLa/dev18.world";
+  client.subscribe("AbYANcCMMUaWE/unit.b.b1");
+  for (i = 0; i < 1; i++) { 
+    message = new Paho.MQTT.Message("Hello unit.b.b1!");
+  message.destinationName = "AbYANcCMMUaWE/unit.b.b1?ttl=3m";
   client.send(message);
-  }
+}
 }
 
 // called when the client loses its connection

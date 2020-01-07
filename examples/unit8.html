@@ -17,18 +17,14 @@ client.connect({onSuccess:onConnect});
 function onConnect() {
   // Once a connection has been made, make a subscription and send a message.
   console.log("onConnect");
-  // payload = JSON.stringify({"topic":"dev18.*.india.*.*.*.gagan.*","type":"rw"});
-  //  message = new Paho.MQTT.Message(payload);
-  //  message.destinationName = "trace/keygen";
-  //  client.send(message);
-  //  payload = JSON.stringify({"topic":"dev18.world.india","type":"rw"});
-  //  message = new Paho.MQTT.Message(payload);
-  //  message.destinationName = "trace/keygen";
-  //  client.send(message);
-  client.subscribe("AZIQMUJMIVVNK/dev18.*.india.*.*.*.gagan.*");
-  for (i = 0; i < 100; i++) {
-  message = new Paho.MQTT.Message("Hello india!");
-  message.destinationName = "AbYANcAZedQRU/dev18.world.india?ttl=3m";
+  //  payload = JSON.stringify({"topic":"unit8.b.b1","type":"rw"});
+  //    message = new Paho.MQTT.Message(payload);
+  //    message.destinationName = "trace/keygen";
+  //    client.send(message);
+  client.subscribe("AbYANcEEZDcdY/unit8.b.b1?last=3m");
+  for (i = 0; i < 1; i++) {
+  message = new Paho.MQTT.Message("Hello unit8.b.b1!");
+  message.destinationName = "AbYANcEEZDcdY/unit8.b.b1";
   client.send(message);
   }
 }

@@ -26,14 +26,14 @@ function onConnect() {
   // message = new Paho.MQTT.Message(payload);
   // message.destinationName = "trace/keygen";
   // client.send(message);
-  // payload = JSON.stringify({"topic":"dev20.world.india","type":"rw"});
+  // payload = JSON.stringify({"topic":"unit8.b.b1","type":"rw"});
   // message = new Paho.MQTT.Message(payload);
   // message.destinationName = "trace/keygen";
   // client.send(message);
   client.subscribe("AYAAMACRZDCHK/...");
   for (i = 0; i < 1; i++) {
-  message = new Paho.MQTT.Message("The Remaining Length is encoded using a variable length encoding scheme which uses a single byte for values up to 127. Larger values are handled as follows. The least significant seven bits of each byte encode the data, and the most significant bit is used to indicate that there are following bytes in the representation. Thus each byte encodes 128 values and a continuation bit. The maximum number of bytes in the Remaining Length field is four.");
-  message.destinationName = "AbYANcFQdYSIG/dev20.world.india?ttl=3m";
+  message = new Paho.MQTT.Message("Hi unit8.b.b1!");
+  message.destinationName = "AbYANcEEZDcdY/unit8.b.b1?ttl=3m";
   client.send(message); 
   }
 }

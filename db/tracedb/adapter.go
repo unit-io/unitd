@@ -5,7 +5,6 @@ import (
 	"errors"
 	"os"
 
-	"github.com/unit-io/trace/pkg/collection"
 	"github.com/unit-io/trace/pkg/log"
 	"github.com/unit-io/trace/store"
 	"github.com/unit-io/tracedb"
@@ -110,25 +109,17 @@ func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) e
 // Get performs a query and attempts to fetch last n messages where
 // n is specified by limit argument. From and until times can also be specified
 // for time-series retrieval.
-func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches []collection.Payload, err error) {
+func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches [][]byte, err error) {
 	// Iterating over key/value pairs.
-	it, err := a.db.Items(&tracedb.Query{Topic: topic, Contract: contract, Limit: uint32(limit)})
+	matches, err = a.db.Get(&tracedb.Query{Topic: topic, Contract: contract, Limit: uint32(limit)})
 	if err != nil {
 		return nil, err
-	}
-	// Seek the prefix and check the key so we can quickly exit the iteration.
-	for it.First(); it.Valid(); it.Next() {
-		if err := it.Error(); err != nil {
-			log.Error("adapter.Query", "unable to query db: "+err.Error())
-			return nil, err
-		}
-		matches = append(matches, it.Item().Value())
 	}
 	return matches, nil
 }
 
 // NewID generates a new messageId.
-func (a *adapter) NewID(contract uint32, topic, payload []byte) ([]byte, error) {
+func (a *adapter) NewID() ([]byte, error) {
 	id := a.db.NewID()
 	if id == nil {
 		return nil, errors.New("Key is empty.")
