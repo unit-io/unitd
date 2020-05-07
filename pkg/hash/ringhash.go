@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/unit-io/trace/pkg/log"
+	"github.com/unit-io/unitd/pkg/log"
 )
 
 // Hash is a signature of a hash function used by the package.

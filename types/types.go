@@ -1,7 +1,7 @@
 package types
 
 import (
-	"github.com/unit-io/trace/message/security"
+	"github.com/unit-io/unitd/message/security"
 )
 
 // Error represents an event code which provides a more details.

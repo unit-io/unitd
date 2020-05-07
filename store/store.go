@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 
-	adapter "github.com/unit-io/trace/db"
-	"github.com/unit-io/trace/message"
-	"github.com/unit-io/trace/pkg/uid"
+	adapter "github.com/unit-io/unitd/db"
+	"github.com/unit-io/unitd/message"
+	"github.com/unit-io/unitd/pkg/uid"
 )
 
 const (

@@ -12,7 +12,7 @@ import (
 	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
 
-	traced "github.com/unit-io/trace/broker"
+	traced "github.com/unit-io/unitd/broker"
 )
 
 type Stats struct {

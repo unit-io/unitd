@@ -3,7 +3,7 @@ package broker
 import (
 	"sync"
 
-	"github.com/unit-io/trace/pkg/uid"
+	"github.com/unit-io/unitd/pkg/uid"
 )
 
 type ConnCache struct {

@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 
-	"github.com/unit-io/trace/message"
-	"github.com/unit-io/trace/pkg/encoding"
-	"github.com/unit-io/trace/pkg/hash"
+	"github.com/unit-io/unitd/message"
+	"github.com/unit-io/unitd/pkg/encoding"
+	"github.com/unit-io/unitd/pkg/hash"
 )
 
 // Access types for a security key.

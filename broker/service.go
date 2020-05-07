@@ -10,18 +10,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/unit-io/trace/config"
-	"github.com/unit-io/trace/listener"
-	"github.com/unit-io/trace/pkg/crypto"
-	"github.com/unit-io/trace/pkg/log"
-	"github.com/unit-io/trace/pkg/stats"
-	"github.com/unit-io/trace/pkg/tcp"
-	"github.com/unit-io/trace/pkg/uid"
-	"github.com/unit-io/trace/websocket"
+	"github.com/unit-io/unitd/config"
+	"github.com/unit-io/unitd/listener"
+	"github.com/unit-io/unitd/pkg/crypto"
+	"github.com/unit-io/unitd/pkg/log"
+	"github.com/unit-io/unitd/pkg/stats"
+	"github.com/unit-io/unitd/pkg/tcp"
+	"github.com/unit-io/unitd/pkg/uid"
+	"github.com/unit-io/unitd/websocket"
 
 	// Database store
-	_ "github.com/unit-io/trace/db/tracedb"
-	"github.com/unit-io/trace/store"
+	_ "github.com/unit-io/unitd/db/unitdb"
+	"github.com/unit-io/unitd/store"
 )
 
 //Service is a main struct

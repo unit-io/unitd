@@ -1,25 +1,25 @@
-# Trace
+# Unitd
 
 <p align="left">
-  <img src="trace.png" width="70" alt="Trace" title="Trace: Blazing Fast and Secure Messaging Broker"> 
+  <img src="unitdb.png" width="70" alt="Unitd" title="Unitd: Blazing Fast and Secure Messaging Broker"> 
 </p>
 
-# Trace: Blazing Fast and Secure Messaging Broker
+# Unitd: Blazing Fast and Secure Messaging Broker
 
-## Trace is an open source messaging borker for IoT and other real-time messaging service. Trace messaging API is built for speed and security.
+## Unitd is an open source messaging broker for IoT and other real-time messaging service. Unitd messaging API is built for speed and security.
 
-Trace is a real-time messaging service for IoT connected devices, it is based on MQTT protocol. Trace is blazing fast and secure messaging infrastructure and APIs for IoT, gaming, apps and real-time web.
+Unitd is a real-time messaging service for IoT connected devices, it is based on MQTT protocol. Unitd is blazing fast and secure messaging infrastructure and APIs for IoT, gaming, apps and real-time web.
 
-Trace can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Trace is perfect for the internet of things and internet connected devices.
+Unitd can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Unitd is perfect for the internet of things and internet connected devices.
 
 ## Quick Start
-To build trace from source code use go get command.
+To build Unitd from source code use go get command.
 
-> go get -u github.com/unit-io/trace && trace
+> go get -u github.com/unit-io/unitd && unitd
 
 ## Usage
 
-Files under examples folder has various usage examples. Code snippet is given below to use trace messaging broker with web socket and javascript client.
+Files under examples folder has various usage examples. Code snippet is given below to use Unitd messaging broker with web socket and javascript client.
 
 You need to register a client id and request key in order to publish or subscribe to a topic.
 
@@ -27,7 +27,7 @@ Add below mqtt client script to the web page
 
 >  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
 
-Send empty client Id (as shown in the below code snippet) in order to register a new client. Trace generate two primary client ids. These client Ids are used to request secondary client Ids. You could request n-number of secodary client Ids in order to send and receive messages to multiple topics. For isolation of messaging between topics use secondary Ids those are generated using distinct primary Ids. 
+Send empty client Id (as shown in the below code snippet) in order to register a new client. Unitd generate two primary client ids. These client Ids are used to request secondary client Ids. You could request n-number of secondary client Ids in order to send and receive messages to multiple topics. For isolation of messaging between topics use secondary Ids those are generated using distinct primary Ids. 
 
 > <script type="text/javascript">client = new Paho.MQTT.Client("127.0.01", 6060, "");</script>
 
@@ -49,7 +49,7 @@ function onConnect() {
   console.log("onConnect");
    payload = JSON.stringify({"type":"id"});
    message = new Paho.MQTT.Message(payload);
-   message.destinationName = "trace/clientid";
+   message.destinationName = "Unitd/clientid";
    client.send(message);
 }
 
@@ -118,4 +118,4 @@ function onConnect() {
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.
 
 ## Licensing
-Copyright (c) 2016-2019 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/unit-io/trace/blob/master/LICENSE).
+Copyright (c) 2016-2019 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/unit-io/unitd/blob/master/LICENSE).

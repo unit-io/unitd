@@ -3,7 +3,7 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/unit-io/trace/pkg/log"
+	"github.com/unit-io/unitd/pkg/log"
 )
 
 const (

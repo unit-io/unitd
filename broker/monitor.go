@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/unit-io/trace/pkg/log"
-	"github.com/unit-io/trace/pkg/metrics"
+	"github.com/unit-io/unitd/pkg/log"
+	"github.com/unit-io/unitd/pkg/metrics"
 )
 
 type Meter struct {

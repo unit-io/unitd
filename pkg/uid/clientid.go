@@ -5,8 +5,8 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/unit-io/trace/pkg/crypto"
-	"github.com/unit-io/trace/pkg/encoding"
+	"github.com/unit-io/unitd/pkg/crypto"
+	"github.com/unit-io/unitd/pkg/encoding"
 )
 
 // ID represents a unique ID for client connection.

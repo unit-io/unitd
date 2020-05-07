@@ -5,17 +5,17 @@ import (
 	"errors"
 	"os"
 
-	"github.com/unit-io/trace/pkg/log"
-	"github.com/unit-io/trace/store"
-	"github.com/unit-io/tracedb"
+	"github.com/unit-io/unitd/pkg/log"
+	"github.com/unit-io/unitd/store"
+	"github.com/unit-io/unitdb"
 )
 
 const (
-	defaultDatabase = "trace"
+	defaultDatabase = "unitd"
 
 	dbVersion = 2.0
 
-	adapterName = "tracedb"
+	adapterName = "unitdb"
 )
 
 type configType struct {
@@ -32,21 +32,21 @@ const (
 
 // Store represents an SSD-optimized storage store.
 type adapter struct {
-	db      *tracedb.DB // The underlying database to store messages.
+	db      *unitdb.DB // The underlying database to store messages.
 	version int
 }
 
 // Open initializes database connection
 func (a *adapter) Open(jsonconfig string) error {
 	if a.db != nil {
-		return errors.New("tracedb adapter is already connected")
+		return errors.New("unitdb adapter is already connected")
 	}
 
 	var err error
 	var config configType
 
 	if err = json.Unmarshal([]byte(jsonconfig), &config); err != nil {
-		return errors.New("tracedb adapter failed to parse config: " + err.Error())
+		return errors.New("unitdb adapter failed to parse config: " + err.Error())
 	}
 
 	// Make sure we have a directory
@@ -55,7 +55,7 @@ func (a *adapter) Open(jsonconfig string) error {
 	}
 
 	// Attempt to open the database
-	a.db, err = tracedb.Open(config.Dir+"/"+defaultDatabase, nil)
+	a.db, err = unitdb.Open(config.Dir+"/"+defaultDatabase, nil)
 	if err != nil {
 		log.Error("adapter.Open", "Unable to open db")
 		return err
@@ -87,7 +87,7 @@ func (a *adapter) GetName() string {
 
 // Put appends the messages to the store.
 func (a *adapter) Put(contract uint32, topic, payload []byte) error {
-	err := a.db.PutEntry(&tracedb.Entry{
+	err := a.db.PutEntry(&unitdb.Entry{
 		Topic:    topic,
 		Payload:  payload,
 		Contract: contract,
@@ -97,7 +97,7 @@ func (a *adapter) Put(contract uint32, topic, payload []byte) error {
 
 // PutWithID appends the messages to the store using a pre generated messageId.
 func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) error {
-	err := a.db.PutEntry(&tracedb.Entry{
+	err := a.db.PutEntry(&unitdb.Entry{
 		ID:       messageId,
 		Topic:    topic,
 		Payload:  payload,
@@ -111,7 +111,7 @@ func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) e
 // for time-series retrieval.
 func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches [][]byte, err error) {
 	// Iterating over key/value pairs.
-	matches, err = a.db.Get(&tracedb.Query{Topic: topic, Contract: contract, Limit: uint32(limit)})
+	matches, err = a.db.Get(&unitdb.Query{Topic: topic, Contract: contract, Limit: limit})
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func (a *adapter) NewID() ([]byte, error) {
 
 // Put appends the messages to the store.
 func (a *adapter) Delete(contract uint32, topic, messageId []byte) error {
-	err := a.db.DeleteEntry(&tracedb.Entry{
+	err := a.db.DeleteEntry(&unitdb.Entry{
 		ID:       messageId,
 		Topic:    topic,
 		Contract: contract,

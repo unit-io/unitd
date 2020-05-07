@@ -9,10 +9,10 @@ import (
 	"time"
 
 	jcr "github.com/DisposaBoy/JsonConfigReader"
-	"github.com/unit-io/trace/broker"
-	"github.com/unit-io/trace/config"
-	"github.com/unit-io/trace/pkg/log"
 	"github.com/rs/zerolog"
+	"github.com/unit-io/unitd/broker"
+	"github.com/unit-io/unitd/config"
+	"github.com/unit-io/unitd/pkg/log"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 		panic(err.Error())
 	}
 
-	var configfile = flag.String("config", "trace.conf", "Path to config file.")
+	var configfile = flag.String("config", "unitd.conf", "Path to config file.")
 	var listenOn = flag.String("listen", "", "Override address and port to listen on for HTTP(S) clients.")
 	var clusterSelf = flag.String("cluster_self", "", "Override the name of the current cluster node")
 	var varzPath = flag.String("varz", "/varz", "Expose runtime stats at the given endpoint, e.g. /varz. Disabled if not set")

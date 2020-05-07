@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 
-	"github.com/unit-io/trace/message/security"
-	"github.com/unit-io/trace/pkg/hash"
+	"github.com/unit-io/unitd/message/security"
+	"github.com/unit-io/unitd/pkg/hash"
 )
 
 const (
