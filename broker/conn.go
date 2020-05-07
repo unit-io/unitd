@@ -238,7 +238,7 @@ func (c *Conn) notifyError(err *types.Error, messageID uint16) {
 	err.ID = int(messageID)
 	if b, err := json.Marshal(err); err == nil {
 		c.SendMessage(&message.Message{
-			Topic:   []byte("trace/error/"),
+			Topic:   []byte("unitd/error/"),
 			Payload: b,
 		})
 	}

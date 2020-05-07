@@ -290,9 +290,9 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return types.ErrBadRequest
 	}
 
-	// Check whether the key is 'trace' which means it's an API request
-	if len(topic.Key) == 5 && string(topic.Key) == "trace" {
-		c.onTraceRequest(topic, payload)
+	// Check whether the key is 'unitd' which means it's an API request
+	if len(topic.Key) == 5 && string(topic.Key) == "unitd" {
+		c.onUnitdRequest(topic, payload)
 		return nil
 	}
 
@@ -329,12 +329,12 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 }
 
 // onSpecialRequest processes an special request.
-func (c *Conn) onTraceRequest(topic *security.Topic, payload []byte) (ok bool) {
+func (c *Conn) onUnitdRequest(topic *security.Topic, payload []byte) (ok bool) {
 	var resp interface{}
 	defer func() {
 		if b, err := json.Marshal(resp); err == nil {
 			c.SendMessage(&message.Message{
-				Topic:   []byte("trace/" + string(topic.Topic[:topic.Size])),
+				Topic:   []byte("unitd/" + string(topic.Topic[:topic.Size])),
 				Payload: b,
 			})
 		}
