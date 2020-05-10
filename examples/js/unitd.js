@@ -81,12 +81,18 @@ function genKey() {
         message = new Paho.MQTT.Message(payload);
         message.destinationName = "unitd/keygen";
         client.send(message);
+    } else {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Unable to generate key, topic already has key prefix: ' + topic + '</span><br/>';
     }
     if (!to.includes("/")) {
         payload = JSON.stringify({ "topic": to, "type": "rw" });
         message = new Paho.MQTT.Message(payload);
         message.destinationName = "unitd/keygen";
         client.send(message);
+    } else {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Unable to generate key, topic already has key prefix: ' + to + '</span><br/>';
     }
 }
 
@@ -94,12 +100,29 @@ function genKey() {
 function onSubscribe() {
     // Fetch the MQTT topic from the form
     topic = document.getElementById("topic").value;
+    to = document.getElementById("to").value;
 
-    // Print output for the user in the messages div
-    document.getElementById("messages").innerHTML += '<span>Subscribing to: ' + topic + '</span><br/>';
+    if (topic.includes("/")) {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Subscribing to: ' + topic + '</span><br/>';
 
-    // Subscribe to the requested topic
-    client.subscribe(topic);
+        // Subscribe to the requested topic
+        client.subscribe(topic);
+    } else {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Unable to subscribe to topic without a key prefix: ' + topic + '</span><br/>';
+    }
+
+    if (to.includes("/")) {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Subscribing to: ' + to + '</span><br/>';
+
+        // Subscribe to the requested topic
+        client.subscribe(topic);
+    } else {
+        // Print output for the user in the messages div
+        document.getElementById("messages").innerHTML += '<span>Unable to subscribe to topic without a key prefix: ' + to + '</span><br/>';
+    }
 }
 
 // Called after form input is processed
