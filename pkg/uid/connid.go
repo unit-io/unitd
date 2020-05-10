@@ -1,13 +1,11 @@
 package uid
 
-import(
+import (
 	"sync/atomic"
 )
 
 // LID represents a process-wide unique ID.
 type LID uint64
-
-
 
 // NewID generates a new, process-wide unique ID.
 func NewLID() LID {

@@ -30,7 +30,7 @@ type ClientOptions struct {
 	Addr string
 
 	Size  int
-	HBins int  // Histogram bins.
+	HBins int // Histogram bins.
 
 	// MetricPrefix is metricPrefix to prepend to every metric being sent
 	//

@@ -15,8 +15,8 @@ var ErrServerClosed = errors.New("tcp: Server closed")
 
 type Server struct {
 	sync.Mutex
-	OnAccept 	OnAccept //The handler to invoke when a connection is accepted
-	Closing chan bool
+	OnAccept OnAccept //The handler to invoke when a connection is accepted
+	Closing  chan bool
 }
 
 func (s *Server) Serve(l net.Listener) error {

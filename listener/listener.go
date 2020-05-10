@@ -1,12 +1,12 @@
 package listener
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"net"
 	"sync"
 	"time"
-	"io"
-	"bytes"
-	"fmt"
 )
 
 //Proto gets a connection based on content
@@ -60,9 +60,8 @@ type Listener struct {
 	buffSize    int
 	errHandler  ErrorHandler
 	closing     chan struct{}
-	protos 		[]mux
+	protos      []mux
 	readTimeout time.Duration
-	
 }
 
 func New(address string) (*Listener, error) {
@@ -74,14 +73,14 @@ func New(address string) (*Listener, error) {
 	return &Listener{
 		root:        l,
 		buffSize:    1024,
-		errHandler:  func(_ error) bool {return true},
+		errHandler:  func(_ error) bool { return true },
 		closing:     make(chan struct{}),
 		readTimeout: zeroTime,
 	}, nil
 }
 
 type mux struct {
- 	protos []Proto
+	protos []Proto
 	listen muxListener
 }
 
@@ -102,10 +101,10 @@ func (m *Listener) ServeCallback(proto Proto, serve func(l net.Listener) error) 
 	go serve(p)
 }
 
-func (m *Listener) Proto(proto ...Proto) net.Listener{
-	ml :=muxListener{
+func (m *Listener) Proto(proto ...Proto) net.Listener {
+	ml := muxListener{
 		Listener: m.root,
-		conn: make(chan net.Conn, m.buffSize),
+		conn:     make(chan net.Conn, m.buffSize),
 	}
 	m.protos = append(m.protos, mux{protos: proto, listen: ml})
 	return ml
@@ -133,9 +132,9 @@ func (m *Listener) Serve() error {
 		if err != nil {
 			if !m.handleErr(err) {
 				return err
+			}
+			continue
 		}
-		continue
-	}
 
 		wg.Add(1)
 		go m.serve(c, m.closing, &wg)
@@ -147,7 +146,7 @@ func (m *Listener) serve(c net.Conn, donec <-chan struct{}, wg *sync.WaitGroup) 
 
 	muxc := newConn(c)
 	if m.readTimeout > zeroTime {
-		_=c.SetReadDeadline(time.Now().Add(m.readTimeout))
+		_ = c.SetReadDeadline(time.Now().Add(m.readTimeout))
 	}
 
 	for _, p := range m.protos {
@@ -161,15 +160,14 @@ func (m *Listener) serve(c net.Conn, donec <-chan struct{}, wg *sync.WaitGroup) 
 				select {
 				case p.listen.conn <- muxc:
 				case <-donec:
-					_=c.Close()
+					_ = c.Close()
 				}
-				return		
+				return
 			}
-		} 
+		}
 	}
 	_ = c.Close()
-	err := ErrProtoNotMatched{c:c}
-	err.Error()
+	err := ErrProtoNotMatched{c: c}
 	if !m.handleErr(err) {
 		_ = m.root.Close()
 	}
@@ -195,7 +193,6 @@ func (m *Listener) handleErr(err error) bool {
 func (m *Listener) Close() error {
 	return m.root.Close()
 }
-
 
 type muxListener struct {
 	net.Listener

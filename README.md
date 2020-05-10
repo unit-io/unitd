@@ -1,5 +1,7 @@
+# unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd) [![Go Report Card](https://goreportcard.com/badge/github.com/unit-io/unitd)](https://goreportcard.com/report/github.com/unit-io/unitd) [![Coverage Status](https://coveralls.io/repos/github/unit-io/unitd/badge.svg?branch=master)](https://coveralls.io/github/unit-io/unitd?branch=master)
+
 <p align="left">
-  <img src="unitdb.png" width="300" alt="Unitd" title="Unitd: Blazing Fast and Secure Messaging Broker"> 
+  <img src="unitd.png" width="300" alt="Unitd" title="Unitd: Blazing Fast and Secure Messaging Broker"> 
 </p>
 
 # unitd: Blazing Fast and Secure Messaging Broker
@@ -96,12 +98,12 @@ function onConnect() {
 Use dot '.' character as topic separator and use three dots '`...`' at the end to subscribe to all topics following the path or use '`*`' character to subscribe to single wildcard topic.
 
 Following are valid topic subscriptions:
-- "<<key>>/..."
-- "<<key>>/unit.b..."
-- "<<key>>/unit.*.b.*;"
+- "key/`...`"
+- "key/unit.b`...`"
+- "key/unit.`*`.b.`*`;"
 
 You could send messages to tenant unit.b.b1:
-- "<<key>>/unit.b.b11"
+- "key/unit.b.b11"
 ```
 // called when the client connects
 function onConnect() {

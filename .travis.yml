@@ -1,0 +1,19 @@
+language: go
+go:
+- 1.12
+os:
+- osx
+env:
+  global:
+  - secure: tKsWpWGHAhxPdoKyiPbHhx+fqLkFGPjpcJGlf92ndG2B7EOnib1Nv/lzpbK/AQA8TBAITrKtjpazt+byQIlUf9WaKQbUXdcJH3DZ5WaliUSXrx/CsCexjIa00JwnjMQ/lJPMbkwbch9g1IvDUehU5P+xdhzBIvT1cC28n22BUODP2Rx+dyHVrz0Tr7hyiYzDPTrk6j4zJOaw1KFb95l185Oz4o2uMzmUw/5DDYKV6q6ZgENt/FMTr6Dfu2WpxYuKFrPOU1fWAhKgp43CD+G6IGJ5N09dfIz14W8HnBRMOrdrSgC8XEG3SHw86s88/Nk4BxDbcOnOMyiAeMk1H0cw0lFKSJOm3I94/N3PF855Gl18XWIWx6j19gIaxBLKx7PLGsIx0pq6vzqyYk8iycjK9CJ4ihoTsw/r+2sfcYvz7X2vgFX7ku5lH52go5H51q8yQ//V634JnVu4Z0iAh//9VqPbXmwnqARaa4qxYhWHtcodCLFYtw4njr9glKj4EaE9EK5JZwsDFF8auovXNWKbMm/v8L2mtwtuviD26OpJBLKZlVXKJxpVvtYEsn6tPvzoGmY8v+81O1N3B/VyPMlyHq3++D7xTyBXJN7Kug+ocGDk4uK6AHjU7LDmw9QlNGvGEJ41EYYHvUQOy+YaosydIiqEj3fCnzvsc7Fb/Ao5+a4=
+before_install:
+- go get golang.org/x/tools/cmd/cover
+- go get github.com/mattn/goveralls
+jobs:
+  include:
+  - stage: test
+    script:
+    - go get github.com/mattn/goveralls
+    - go get -u github.com/rakyll/gotest
+    - gotest -v -covermode=count -coverprofile=coverage.out ./...
+    - "$GOPATH/bin/goveralls -coverprofile=coverage.out -service=travis-pro"

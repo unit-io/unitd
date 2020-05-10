@@ -9,10 +9,7 @@ import (
 	"time"
 
 	"github.com/influxdata/telegraf"
-	"github.com/influxdata/telegraf/internal"
 	"github.com/influxdata/telegraf/plugins/inputs"
-
-	traced "github.com/unit-io/unitd/broker"
 )
 
 type Stats struct {
@@ -25,7 +22,7 @@ type Stats struct {
 }
 
 var sampleConfig = `
-	## The address of the monitoring endpoint of the trace broker
+	## The address of the monitoring endpoint of the unitd broker
   	server = "http://localhost:6060"
 	## Maximum time to receive response
 	#response_timeout = "5s"
@@ -39,7 +36,7 @@ func (s *Stats) SampleConfig() string {
 }
 
 func (s *Stats) Description() string {
-	return "Provides metrics about the state of a Trace server"
+	return "Provides metrics about the state of a unitd server"
 }
 
 func (s *Stats) Gather(acc telegraf.Accumulator) error {
@@ -63,12 +60,12 @@ func (s *Stats) Gather(acc telegraf.Accumulator) error {
 		return err
 	}
 
-	stats := new(traced.Varz)
+	stats := new(unitd.Varz)
 	err = json.Unmarshal([]byte(bytes), &stats)
 	if err != nil {
 		return err
 	}
-	acc.AddFields("trace",
+	acc.AddFields("unitd",
 		map[string]interface{}{
 			"Uptime":        stats.Uptime,
 			"Connections":   stats.Connections,
@@ -110,7 +107,7 @@ func (s *Stats) createHTTPClient() *http.Client {
 }
 
 func init() {
-	inputs.Add("trace", func() telegraf.Input {
+	inputs.Add("unitd", func() telegraf.Input {
 		return &Stats{
 			Server: "http://localhost:6060",
 		}

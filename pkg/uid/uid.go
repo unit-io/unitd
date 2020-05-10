@@ -2,12 +2,12 @@ package uid
 
 import (
 	"encoding/binary"
-	"time"
 	"math"
 	"math/rand"
+	"time"
 )
 
-const(
+const (
 	Offset = 1555770000
 )
 
@@ -16,7 +16,7 @@ var (
 	// to avoid collisions of ids between process restarts.
 	Next = uint32(
 		time.Date(2070, 1, 1, 0, 0, 0, 0, time.UTC).Sub(time.Now()).Seconds(),
-)
+	)
 )
 
 func NewApoch() uint32 {

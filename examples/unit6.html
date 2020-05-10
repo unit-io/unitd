@@ -1,47 +1,50 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <meta charset="UTF-8">
-    <title>Go Websocket</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
-    <script type="text/javascript">
-        client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDSRJEDVJIbdAWLNBaAaBHBKefXaZLAHTEDAEcZSRPfORQUcA");
-        // set callback handlers
-client.onConnectionLost = onConnectionLost;
-client.onMessageArrived = onMessageArrived;
+  <meta charset="UTF-8">
+  <title>Go Websocket</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
+  <script type="text/javascript">
+    client = new Paho.MQTT.Client("127.0.01", 6060, "UCBFDSRJEDVJIbdAWLNBaAaBHBKefXaZLAHTEDAEcZSRPfORQUcA");
+    // set callback handlers
+    client.onConnectionLost = onConnectionLost;
+    client.onMessageArrived = onMessageArrived;
 
-// connect the client
-client.connect({onSuccess:onConnect});
+    // connect the client
+    client.connect({ onSuccess: onConnect });
 
-// called when the client connects
-function onConnect() {
-  // Once a connection has been made, make a subscription and send a message.
-  console.log("onConnect");
-  //  payload = JSON.stringify({"topic":"unit.b.b1.b11","type":"rw"});
-  //    message = new Paho.MQTT.Message(payload);
-  //    message.destinationName = "trace/keygen";
-  //    client.send(message);
-  client.subscribe("AbcANeEQAFWQc/unit.b.b1.b11");
-  for (i = 0; i < 70; i++) {
-  message = new Paho.MQTT.Message("Jay unit.b.b1.b11!");
-  message.destinationName = "AbcANeEQAFWQc/unit.b.b1.b11";
-  client.send(message);
-  }
-}
+    // called when the client connects
+    function onConnect() {
+      // Once a connection has been made, make a subscription and send a message.
+      console.log("onConnect");
+      //  payload = JSON.stringify({"topic":"unit.b.b1.b11","type":"rw"});
+      //    message = new Paho.MQTT.Message(payload);
+      //    message.destinationName = "unitd/keygen";
+      //    client.send(message);
+      client.subscribe("AbcANeEQAFWQc/unit.b.b1.b11");
+      for (i = 0; i < 70; i++) {
+        message = new Paho.MQTT.Message("Jay unit.b.b1.b11!");
+        message.destinationName = "AbcANeEQAFWQc/unit.b.b1.b11";
+        client.send(message);
+      }
+    }
 
-// called when the client loses its connection
-function onConnectionLost(responseObject) {
-  if (responseObject.errorCode !== 0) {
-    console.log("onConnectionLost:"+responseObject.errorMessage);
-  }
-}
+    // called when the client loses its connection
+    function onConnectionLost(responseObject) {
+      if (responseObject.errorCode !== 0) {
+        console.log("onConnectionLost:" + responseObject.errorMessage);
+      }
+    }
 
-// called when a message arrives
-function onMessageArrived(message) {
-  console.log("onMessageArrived:"+message.payloadString);
-}
-    </script>
+    // called when a message arrives
+    function onMessageArrived(message) {
+      console.log("onMessageArrived:" + message.payloadString);
+    }
+  </script>
 </head>
+
 <body>
 </body>
+
 </html>

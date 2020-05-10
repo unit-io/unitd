@@ -1,7 +1,7 @@
 package broker
 
 var Globals struct {
-	Cluster *Cluster
+	Cluster   *Cluster
 	ConnCache *ConnCache
 	Service   *Service
 }

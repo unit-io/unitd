@@ -26,7 +26,7 @@ type Config struct {
 type Stats struct {
 	sync.Mutex
 	trans        *transport
-	Count         uint64
+	Count        uint64
 	metricPrefix string
 	defaultTags  []Tag
 }

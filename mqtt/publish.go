@@ -6,11 +6,11 @@ import (
 
 // Publish represents an MQTT publish packet.
 type Publish struct {
-	Header    *FixedHeader
-	Topic     []byte
-	MessageID uint16
+	Header      *FixedHeader
+	Topic       []byte
+	MessageID   uint16
 	IsForwarded bool
-	Payload   []byte
+	Payload     []byte
 }
 
 //Puback is sent for QOS level one to verify the receipt of a publish

@@ -23,14 +23,13 @@ type websocketConn interface {
 // websocketConn represents a websocket connection.
 type session struct {
 	sync.Mutex
-	ws 		websocketConn
+	ws      websocketConn
 	reader  io.Reader
 	closing chan bool
 }
 
 const (
-
-	MaxMessageSize =  1 << 19
+	MaxMessageSize = 1 << 19
 
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
@@ -42,13 +41,13 @@ const (
 	pingPeriod = (pongWait * 9) / 10
 
 	// Time to wait before force close on connection.
-	closeGracePeriod = 10 * time.Second    
+	closeGracePeriod = 10 * time.Second
 )
 
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	Subprotocols: []string{"mqttv3.1", "mqttv3", "mqtt"},
+	Subprotocols:    []string{"mqttv3.1", "mqttv3", "mqtt"},
 }
 
 func Handler(w http.ResponseWriter, r *http.Request) (net.Conn, bool) {
@@ -74,33 +73,33 @@ func Handler(w http.ResponseWriter, r *http.Request) (net.Conn, bool) {
 // newConn creates a new transport from websocket.
 func newConn(ws websocketConn) net.Conn {
 	conn := &session{
-		ws:  ws,
+		ws:      ws,
 		closing: make(chan bool),
 	}
 
 	return conn
 }
 
-func (sess *session) Read(b []byte) (n int, err error){
+func (sess *session) Read(b []byte) (n int, err error) {
 	if sess.reader == nil {
-	for {
-		// Read a ClientComMessage
-		c, r, err := sess.ws.NextReader()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure,
-				websocket.CloseNormalClosure) {
+		for {
+			// Read a ClientComMessage
+			c, r, err := sess.ws.NextReader()
+			if err != nil {
+				if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure,
+					websocket.CloseNormalClosure) {
+				}
+				return 0, err
 			}
-			return 0, err
-		}
 
-		if c != websocket.BinaryMessage && c != websocket.TextMessage {
-			continue
-		}
+			if c != websocket.BinaryMessage && c != websocket.TextMessage {
+				continue
+			}
 
-		sess.reader = r
-		break
+			sess.reader = r
+			break
+		}
 	}
-}
 	// Read from the reader
 	n, err = sess.reader.Read(b)
 	if err != nil {
@@ -160,4 +159,3 @@ func (sess *session) SetReadDeadline(t time.Time) error {
 func (sess *session) SetWriteDeadline(t time.Time) error {
 	return sess.ws.SetWriteDeadline(t)
 }
-

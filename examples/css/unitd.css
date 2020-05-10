@@ -1,0 +1,56 @@
+body {
+    font-family: "Open Sans", sans-serif;
+}
+.wrapper {
+    margin-left: auto;
+    margin-right: auto;
+    width: 70%;
+    padding-right: 10px;
+    padding-left: 10px;
+}
+
+input {
+    width : 150px;
+    margin: 0;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+}
+input[type=text] {
+    width: 100%;
+    padding: 12px 20px;
+    margin: 8px 0;
+}
+input[type=button] {
+    background-color: gray;
+    border: none;
+    color: black;
+    padding: 16px 32px;
+    text-decoration: none;
+    font-weight: bold;
+    margin: 4px 2px;
+    cursor: pointer;
+}
+input[type=text]:focus {
+    background-color: lightblue;
+}
+input[type=button]:hover {
+    background-color: #686868;
+}
+
+#messages {
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 12px;
+    width:100%;
+    display: inline-block;
+    border:1px solid black;
+    max-height: 250px;
+    min-height: 250px;
+    overflow: scroll;
+}
+#messages span {
+    overflow-y: scroll;
+    overflow: scroll;
+}
+

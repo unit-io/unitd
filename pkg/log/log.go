@@ -1,8 +1,8 @@
 package log
 
 import (
-	"strings"
 	"os"
+	"strings"
 
 	"github.com/rs/zerolog"
 )
@@ -13,7 +13,7 @@ var ConnLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 // ErrLogger is the error logger to use in application.
 var ErrLogger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 
-// errlogger is the error logger with caller trace to use in application.
+// errlogger is the error logger with caller to use in application.
 var errlogger = zerolog.New(os.Stderr).With().Timestamp().Caller().Logger()
 
 // Info logs the conn or sub/unsub action with a tag.
