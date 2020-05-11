@@ -100,7 +100,7 @@ Use dot '.' character as topic separator and use three dots '`...`' at the end t
 Following are valid topic subscriptions:
 - "key/`...`"
 - "key/unit.b`...`"
-- "key/unit.`*`.b.`*`;"
+- "key/unit.`*`.b.`*`"
 
 You could send messages to tenant unit.b.b1:
 - "key/unit.b.b11"

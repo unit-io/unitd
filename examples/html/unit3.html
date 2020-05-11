@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>unitd: A simple web application that can subscribe to topics from an unitd broker over websockets
+    </title>
+    <link rel="stylesheet" href="../css/unitd.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.2/mqttws31.min.js"
+        type="text/javascript"></script>
+    <script src="../js/unitd.js" type="text/javascript"></script>
+</head>
+
+<body>
+    <div class="wrapper">
+        <h1>unitd-demo</h1>
+        <form id="connection-information-form">
+            <b>Hostname or IP Address:</b>
+            <input id="host" type="text" name="host" value="127.0.01"><br>
+            <b>Port:</b>
+            <input id="port" type="text" name="port" value="6060"><br>
+            <b>Client ID:</b>
+            <input id="clientid" type="text" name="clientid"
+                value="UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ"><br>
+            <input type="button" onclick="genClientId()" value="New Client ID">
+            <input type="button" onclick="startConnect()" value="Connect">
+            <input type="button" onclick="startDisconnect()" value="Disconnect"></br></br>
+            <b>Subscribe:</b>
+            <input id="topic" type="text" name="topic" value="AZQAMYGSIFROC/unit.b...?last=300"><br><br>
+            <b>Publish:</b>
+            <input id="to" type="text" name="to" value="AbfYNfYAXDSCa/unit.b.b1.b11.b111.b1111.b11111.b111111"><br><br>
+            <input id="msg" type="text" name="msg" value=" Hello unit.b.b1.b11.b111.b1111.b11111.b111111! "><br><br>
+            <input type="button" onclick="genKey()" value="Generate Key">
+            <input type="button" onclick="onSubscribe()" value="Subscribe">
+            <input type="button" onclick="onPublish()" value="Publish">
+        </form>
+        <div id="messages"></div>
+    </div>
+</body>
+
+</html>
