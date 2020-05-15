@@ -132,7 +132,7 @@ function onPublish() {
     msg = document.getElementById("msg").value;
 
     message = new Paho.MQTT.Message(msg);
-    message.destinationName = to + "?ttl=3m";
+    message.destinationName = to;
     client.send(message);
 }
 
@@ -149,12 +149,6 @@ function onConnect() {
 
         // Subscribe to the requested topic
         client.subscribe(topic);
-    }
-    if (to.includes("/")) {
-        // Public message to topic
-        message = new Paho.MQTT.Message(msg);
-        message.destinationName = to + "?ttl=3m";
-        client.send(message);
     }
 }
 

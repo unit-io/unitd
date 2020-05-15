@@ -1,4 +1,4 @@
-# unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd) [![Go Report Card](https://goreportcard.com/badge/github.com/unit-io/unitd)](https://goreportcard.com/report/github.com/unit-io/unitd) [![Coverage Status](https://coveralls.io/repos/github/unit-io/unitd/badge.svg?branch=master)](https://coveralls.io/github/unit-io/unitd?branch=master)
+# unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd)
 
 <p align="left">
   <img src="unitd.png" width="300" alt="Unitd" title="Unitd: Blazing Fast and Secure Messaging Broker"> 
