@@ -55,7 +55,7 @@ func (a *adapter) Open(jsonconfig string) error {
 	}
 
 	// Attempt to open the database
-	a.db, err = unitdb.Open(config.Dir+"/"+defaultDatabase, nil)
+	a.db, err = unitdb.Open(config.Dir+"/"+defaultDatabase, nil, nil)
 	if err != nil {
 		log.Error("adapter.Open", "Unable to open db")
 		return err
@@ -109,9 +109,9 @@ func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) e
 // Get performs a query and attempts to fetch last n messages where
 // n is specified by limit argument. From and until times can also be specified
 // for time-series retrieval.
-func (a *adapter) Get(contract uint32, topic []byte, limit int) (matches [][]byte, err error) {
+func (a *adapter) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
 	// Iterating over key/value pairs.
-	matches, err = a.db.Get(&unitdb.Query{Topic: topic, Contract: contract, Limit: limit})
+	matches, err = a.db.Get(&unitdb.Query{Contract: contract, Topic: topic})
 	if err != nil {
 		return nil, err
 	}

@@ -13,7 +13,7 @@ Unitd is a real-time messaging service for IoT connected devices, it is based on
 Unitd can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Unitd is perfect for the internet of things and internet connected devices.
 
 ## Quick Start
-To build Unitd from source code use go get command.
+To build Unitd from source code use go get command. Copy unitdb.conf to the path unitd binary is placed.
 
 > go get -u github.com/unit-io/unitd && unitd
 
@@ -25,7 +25,7 @@ Open [unitd.html](https://github.com/unit-io/unitd/blob/master/examples/html/uni
 
 ## Steps
 - Generate Client ID
-- Specify new client ID and connect to client
+- Specify new client ID and connect to client. On connect it subscribes to topic if topic has a valid key.
 - Specify topics to subscribe/publish messages and generate key
 - Specify key to the topics with separator '/' and subscribe to topic
 - Specify message to send and publish to topic

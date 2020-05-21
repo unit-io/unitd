@@ -119,7 +119,7 @@ func (m *MessageStore) Put(contract uint32, topic, payload []byte) error {
 }
 
 func (m *MessageStore) Get(contract uint32, topic []byte) (matches []message.Message, err error) {
-	resp, err := adp.Get(contract, topic, 0)
+	resp, err := adp.Get(contract, topic)
 	for _, payload := range resp {
 		msg := message.Message{
 			Topic:   topic,
@@ -145,7 +145,7 @@ func (c *ConnectionStore) Put(contract uint32, topic []byte, messageId []byte, c
 }
 
 func (c *ConnectionStore) Get(contract uint32, topic []byte) (matches []uid.LID, err error) {
-	resp, err := adp.Get(contract^connStoreId, topic, maxResults)
+	resp, err := adp.Get(contract^connStoreId, topic)
 	for _, payload := range resp {
 		if payload == nil {
 			continue
