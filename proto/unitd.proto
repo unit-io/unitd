@@ -1,0 +1,70 @@
+syntax = "proto3";
+
+package unitd;
+
+option go_package='unitd';
+
+service Unitd {
+rpc Start (stream ConnInfo) returns (stream ConnInfo);
+rpc Stream (stream ClientMsg) returns (stream ServerMsg);
+
+rpc Stop (Empty) returns (Empty);
+}
+
+message Empty {
+}
+
+
+message ConnInfo {
+uint32 client_id=1;
+string network=2;
+string address=3;
+}
+
+message ClientMsg {
+	oneof Message {
+		Entry entry=1;
+		Query query = 2;
+		Sub sub = 3;
+		Pub pub = 4;
+	}
+}
+
+message ServerMsg {
+	oneof Message {
+		Info info=1;
+		Data data = 2;
+	}
+}
+
+message Entry {
+bytes topic=1;
+bytes payload=2;
+}
+
+message Query {
+bytes topic=1;
+int32 limit=2;
+}
+
+message Sub {
+bytes topic=1;
+}
+
+message Pub {
+bytes topic=1;
+bytes payload=2;
+}
+
+message Info {
+bytes topic=1;
+uint64 seq=2;
+}
+
+message Data {
+bytes topic=1;
+bytes content=2;
+}
+
+
+

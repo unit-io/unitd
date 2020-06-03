@@ -20,7 +20,7 @@ type websocketConn interface {
 	SetWriteDeadline(t time.Time) error
 }
 
-// websocketConn represents a websocket connection.
+// session represents a websocket connection.
 type session struct {
 	sync.Mutex
 	ws      websocketConn

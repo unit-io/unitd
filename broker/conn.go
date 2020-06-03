@@ -138,8 +138,7 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error)
 	defer c.Unlock()
 
 	key := string(topic.Key)
-	if exists := c.subs.Exist(key); exists {
-	} else if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
+	if exists := c.subs.Exist(key); exists && !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The contract is handled by a remote node. Forward message to it.
 		if err := Globals.Cluster.routeToContract(pkt, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.subscribe").Int64("connid", int64(c.connid)).Msg("unable to subscribe to remote topic")

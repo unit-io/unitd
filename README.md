@@ -13,7 +13,7 @@ Unitd is a real-time messaging service for IoT connected devices, it is based on
 Unitd can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Unitd is perfect for the internet of things and internet connected devices.
 
 ## Quick Start
-To build Unitd from source code use go get command. Copy unitdb.conf to the path unitd binary is placed.
+To build Unitd from source code use go get command and copy [unitd.conf](https://github.com/unit-io/unitd/tree/master/unitd.conf) to the path unitd binary is placed.
 
 > go get -u github.com/unit-io/unitd && unitd
 
@@ -44,4 +44,4 @@ Open [unitd.html](https://github.com/unit-io/unitd/blob/master/examples/html/uni
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.
 
 ## Licensing
-Copyright (c) 2016-2019 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/unit-io/unitd/blob/master/LICENSE).
+Copyright (c) 2016-2020 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/unit-io/unitd/blob/master/LICENSE).

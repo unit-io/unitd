@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"github.com/unit-io/unitd/config"
-	"github.com/unit-io/unitd/listener"
+	"github.com/unit-io/unitd/net/listener"
+	"github.com/unit-io/unitd/net/websocket"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
 	"github.com/unit-io/unitd/pkg/tcp"
 	"github.com/unit-io/unitd/pkg/uid"
-	"github.com/unit-io/unitd/websocket"
 
 	// Database store
 	_ "github.com/unit-io/unitd/db/unitdb"
