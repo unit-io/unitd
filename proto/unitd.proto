@@ -5,10 +5,10 @@ package unitd;
 option go_package='unitd';
 
 service Unitd {
-rpc Start (stream ConnInfo) returns (stream ConnInfo);
+rpc Start (ConnInfo) returns (ConnInfo){}
 rpc Stream (stream ClientMsg) returns (stream ServerMsg);
 
-rpc Stop (Empty) returns (Empty);
+rpc Stop (Empty) returns (Empty){}
 }
 
 message Empty {
@@ -16,7 +16,7 @@ message Empty {
 
 
 message ConnInfo {
-uint32 client_id=1;
+string client_id=1;
 string network=2;
 string address=3;
 }

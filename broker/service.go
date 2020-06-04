@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/unit-io/unitd/config"
+	grpcSrv "github.com/unit-io/unitd/net/grpc"
 	"github.com/unit-io/unitd/net/listener"
 	"github.com/unit-io/unitd/net/websocket"
 	"github.com/unit-io/unitd/pkg/crypto"
@@ -18,6 +19,7 @@ import (
 	"github.com/unit-io/unitd/pkg/stats"
 	"github.com/unit-io/unitd/pkg/tcp"
 	"github.com/unit-io/unitd/pkg/uid"
+	"google.golang.org/grpc"
 
 	// Database store
 	_ "github.com/unit-io/unitd/db/unitdb"
@@ -36,6 +38,7 @@ type Service struct {
 	// subscriptions *message.Subscriptions // The subscription matching trie.
 	http  *http.Server // The underlying HTTP server.
 	tcp   *tcp.Server  // The underlying TCP server.
+	grpc  *grpc.Server // The underlying GRPC server.
 	meter *Meter       // The metircs to measure timeseries on mqtt message events
 	stats *stats.Stats
 }
@@ -52,6 +55,7 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		// subscriptions: message.NewSubscriptions(),
 		http:  new(http.Server),
 		tcp:   new(tcp.Server),
+		grpc:  grpc.NewServer(),
 		meter: NewMeter(),
 
 		stats: stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
@@ -82,6 +86,7 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		log.Fatal("service", "Failed to connect to DB:", err)
 	}
 
+	s.grpc = grpcSrv.New(s.config.Listen, false, nil)
 	return s, nil
 }
 
@@ -110,6 +115,7 @@ func (s *Service) listen(addr string) {
 	l.SetReadTimeout(120 * time.Second)
 
 	// Configure the protos
+	l.ServeCallback(listener.MatchCT("application/grpc"), s.grpc.Serve)
 	l.ServeCallback(listener.MatchWS("GET"), s.http.Serve)
 	l.ServeCallback(listener.MatchAny(), s.tcp.Serve)
 

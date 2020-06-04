@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"log"
 
 	"github.com/unit-io/unitd/message/security"
 	"github.com/unit-io/unitd/pkg/hash"
+	pbx "github.com/unit-io/unitd/proto"
+	"google.golang.org/grpc"
 )
 
 const (
@@ -44,6 +48,21 @@ func (m *keyGenRequest) access() uint32 {
 }
 
 func main() {
+	// Set up a connection to the server.
+	conn, err := grpc.Dial("localhost:6060", grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("did not connect: %v", err)
+	}
+	defer conn.Close()
+	c := pbx.NewUnitdClient(conn)
+
+	// Contact the server and print out its response.
+	r, err := c.Start(context.Background(), &pbx.ConnInfo{ClientId: "UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ"})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("ConnInfo: %s", r)
+
 	fmt.Println("connectionstore", hash.WithSalt([]byte("connectionstore"), uint32(3376684800)))
 	fmt.Println("keygen: ", hash.WithSalt([]byte("keygen"), uint32(3376684800)))
 	fmt.Println("presence: ", hash.WithSalt([]byte("presence"), uint32(3376684800)))
