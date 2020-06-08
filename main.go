@@ -73,6 +73,9 @@ func main() {
 
 	broker.Globals.Service = svc
 
+	// // Listen and serve grpc
+	// svc.ListenGrpc()
+
 	//Listen and serve
 	svc.Listen()
 	log.Info("main", "Service is runnig at port "+cfg.Listen)

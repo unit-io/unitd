@@ -12,11 +12,11 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
-	"github.com/unit-io/unitd/mqtt"
 	"github.com/unit-io/unitd/net/listener"
 	rh "github.com/unit-io/unitd/pkg/hash"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
+	"github.com/unit-io/unitd/plugins/mqtt"
 )
 
 const (

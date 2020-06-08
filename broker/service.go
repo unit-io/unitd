@@ -11,15 +11,15 @@ import (
 	"time"
 
 	"github.com/unit-io/unitd/config"
-	grpcSrv "github.com/unit-io/unitd/net/grpc"
+	plugins "github.com/unit-io/unitd/net/grpc"
 	"github.com/unit-io/unitd/net/listener"
+	"github.com/unit-io/unitd/net/tcp"
 	"github.com/unit-io/unitd/net/websocket"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
-	"github.com/unit-io/unitd/pkg/tcp"
 	"github.com/unit-io/unitd/pkg/uid"
-	"google.golang.org/grpc"
+	"github.com/unit-io/unitd/types"
 
 	// Database store
 	_ "github.com/unit-io/unitd/db/unitdb"
@@ -35,12 +35,11 @@ type Service struct {
 	config  *config.Config     // The configuration for the service.
 	cancel  context.CancelFunc // cancellation function
 	start   time.Time          // The service start time
-	// subscriptions *message.Subscriptions // The subscription matching trie.
-	http  *http.Server // The underlying HTTP server.
-	tcp   *tcp.Server  // The underlying TCP server.
-	grpc  *grpc.Server // The underlying GRPC server.
-	meter *Meter       // The metircs to measure timeseries on mqtt message events
-	stats *stats.Stats
+	http    *http.Server       // The underlying HTTP server.
+	tcp     *tcp.Server        // The underlying TCP server.
+	grpc    *plugins.Server    // The underlying GRPC server.
+	meter   *Meter             // The metircs to measure timeseries on mqtt message events
+	stats   *stats.Stats
 }
 
 func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error) {
@@ -55,7 +54,7 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		// subscriptions: message.NewSubscriptions(),
 		http:  new(http.Server),
 		tcp:   new(tcp.Server),
-		grpc:  grpc.NewServer(),
+		grpc:  new(plugins.Server),
 		meter: NewMeter(),
 
 		stats: stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
@@ -72,6 +71,7 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 	}
 
 	//attach handlers
+	s.grpc.Handler = s.onAcceptConn
 	s.http.Handler = mux
 	s.tcp.OnAccept = s.onAcceptConn
 
@@ -86,7 +86,6 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		log.Fatal("service", "Failed to connect to DB:", err)
 	}
 
-	s.grpc = grpcSrv.New(s.config.Listen, false, nil)
 	return s, nil
 }
 
@@ -115,7 +114,7 @@ func (s *Service) listen(addr string) {
 	l.SetReadTimeout(120 * time.Second)
 
 	// Configure the protos
-	l.ServeCallback(listener.MatchCT("application/grpc"), s.grpc.Serve)
+	s.grpc.ListenAndServe(s.config.GrpcListen, false, nil)
 	l.ServeCallback(listener.MatchWS("GET"), s.http.Serve)
 	l.ServeCallback(listener.MatchAny(), s.tcp.Serve)
 
@@ -123,8 +122,8 @@ func (s *Service) listen(addr string) {
 }
 
 // Handle a new connection request
-func (s *Service) onAcceptConn(t net.Conn) {
-	conn := s.newConn(t)
+func (s *Service) onAcceptConn(t net.Conn, proto types.Proto) {
+	conn := s.newConn(t, proto)
 	go conn.Handler()
 	go conn.writeLoop()
 }
@@ -132,7 +131,7 @@ func (s *Service) onAcceptConn(t net.Conn) {
 // Handle a new HTTP request.
 func (s *Service) onRequest(w http.ResponseWriter, r *http.Request) {
 	if ws, ok := websocket.Handler(w, r); ok {
-		s.onAcceptConn(ws)
+		s.onAcceptConn(ws, types.WEBSOCK)
 		return
 	}
 }

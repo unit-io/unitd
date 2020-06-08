@@ -1,24 +1,20 @@
-package mqtt
+package grpc
 
 import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
 	"io"
+
+	"github.com/unit-io/unitd/plugins"
 )
 
 // varHeader reserves the bytes for a variable header.
 var varHeader = []byte{0x0, 0x0, 0x0, 0x0}
 
-//Packet is the interface all our packets will be implementing
-type Packet interface {
-	fmt.Stringer
+type Packet plugins.Packet
 
-	Type() uint8
-	Encode() []byte
-}
-
-// MQTT message types
+// GRPC message types
 const (
 	CONNECT = uint8(iota + 1)
 	CONNACK

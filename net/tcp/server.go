@@ -5,10 +5,12 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/unit-io/unitd/types"
 )
 
 //onAccept is a callback which get called when a connection is accepted
-type OnAccept func(c net.Conn)
+type OnAccept func(c net.Conn, proto types.Proto)
 
 // ErrServerClosed occurs wehen a tcp server is closed.
 var ErrServerClosed = errors.New("tcp: Server closed")
@@ -49,7 +51,7 @@ func (s *Server) Serve(l net.Listener) error {
 		}
 
 		tempDelay = 0
-		go s.OnAccept(conn)
+		go s.OnAccept(conn, types.RPC)
 	}
 }
 

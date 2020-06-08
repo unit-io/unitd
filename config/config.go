@@ -12,12 +12,19 @@ const (
 
 // Config represents main configuration.
 type Config struct {
-	// Default HTTP(S) address:port to listen on for websocket and long polling clients. Either a
+	// Default HTTP(S) address:port to listen on for websocket. Either a
 	// numeric or a canonical name, e.g. ":80" or ":https". Could include a host name, e.g.
 	// "localhost:80".
 	// Could be blank: if TLS is not configured, will use ":80", otherwise ":443".
 	// Can be overridden from the command line, see option --listen.
 	Listen string `json:"listen"`
+
+	// Default HTTP(S) address:port to listen on for grpc. Either a
+	// numeric or a canonical name, e.g. ":80" or ":https". Could include a host name, e.g.
+	// "localhost:80".
+	// Could be blank: if TLS is not configured, will use ":80", otherwise ":443".
+	// Can be overridden from the command line, see option --listen.
+	GrpcListen string `json:"grpc_listen"`
 
 	// Default logging level is "InfoLevel" so to enable the debug log set the "LogLevel" to "DebugLevel".
 	LoggingLevel string `json:"logging_level"`

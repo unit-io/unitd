@@ -10,16 +10,18 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
-	"github.com/unit-io/unitd/mqtt"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
+	"github.com/unit-io/unitd/plugins/mqtt"
 	"github.com/unit-io/unitd/store"
 	"github.com/unit-io/unitd/types"
 )
 
 type Conn struct {
 	sync.Mutex
-	tracked  uint32 // Whether the connection was already tracked or not.
+	tracked uint32 // Whether the connection was already tracked or not.
+	// protocol - NONE (unset), RPC, GRPC, WEBSOCK, CLUSTER
+	proto    types.Proto
 	socket   net.Conn
 	send     chan []byte
 	stop     chan interface{}
@@ -34,8 +36,9 @@ type Conn struct {
 	nodes map[string]bool
 }
 
-func (s *Service) newConn(t net.Conn) *Conn {
+func (s *Service) newConn(t net.Conn, proto types.Proto) *Conn {
 	c := &Conn{
+		proto:   proto,
 		socket:  t,
 		send:    make(chan []byte, 1),      // buffered
 		stop:    make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking

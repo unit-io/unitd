@@ -4,6 +4,18 @@ import (
 	"github.com/unit-io/unitd/message/security"
 )
 
+// Wire transport
+// LogStatus represents the state of log, written to applied
+type Proto int
+
+const (
+	NONE Proto = iota
+	RPC
+	GRPC
+	WEBSOCK
+	CLUSTER
+)
+
 // Error represents an event code which provides a more details.
 type Error struct {
 	Status  int    `json:"status"`

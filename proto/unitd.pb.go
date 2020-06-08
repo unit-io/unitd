@@ -56,9 +56,7 @@ func (m *Empty) XXX_DiscardUnknown() {
 var xxx_messageInfo_Empty proto.InternalMessageInfo
 
 type ConnInfo struct {
-	ClientId             string   `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
-	Network              string   `protobuf:"bytes,2,opt,name=network,proto3" json:"network,omitempty"`
-	Address              string   `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
+	ClientId             []byte   `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -89,214 +87,215 @@ func (m *ConnInfo) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_ConnInfo proto.InternalMessageInfo
 
-func (m *ConnInfo) GetClientId() string {
+func (m *ConnInfo) GetClientId() []byte {
 	if m != nil {
 		return m.ClientId
 	}
-	return ""
+	return nil
 }
 
-func (m *ConnInfo) GetNetwork() string {
-	if m != nil {
-		return m.Network
-	}
-	return ""
-}
-
-func (m *ConnInfo) GetAddress() string {
-	if m != nil {
-		return m.Address
-	}
-	return ""
-}
-
-type ClientMsg struct {
+type InMsg struct {
 	// Types that are valid to be assigned to Message:
-	//	*ClientMsg_Entry
-	//	*ClientMsg_Query
-	//	*ClientMsg_Sub
-	//	*ClientMsg_Pub
-	Message              isClientMsg_Message `protobuf_oneof:"Message"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	//	*InMsg_Info
+	//	*InMsg_Entry
+	//	*InMsg_Query
+	//	*InMsg_Sub
+	//	*InMsg_Pub
+	Message              isInMsg_Message `protobuf_oneof:"Message"`
+	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
+	XXX_unrecognized     []byte          `json:"-"`
+	XXX_sizecache        int32           `json:"-"`
 }
 
-func (m *ClientMsg) Reset()         { *m = ClientMsg{} }
-func (m *ClientMsg) String() string { return proto.CompactTextString(m) }
-func (*ClientMsg) ProtoMessage()    {}
-func (*ClientMsg) Descriptor() ([]byte, []int) {
+func (m *InMsg) Reset()         { *m = InMsg{} }
+func (m *InMsg) String() string { return proto.CompactTextString(m) }
+func (*InMsg) ProtoMessage()    {}
+func (*InMsg) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2581e9e1a4f3b0d3, []int{2}
 }
 
-func (m *ClientMsg) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ClientMsg.Unmarshal(m, b)
+func (m *InMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_InMsg.Unmarshal(m, b)
 }
-func (m *ClientMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ClientMsg.Marshal(b, m, deterministic)
+func (m *InMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_InMsg.Marshal(b, m, deterministic)
 }
-func (m *ClientMsg) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ClientMsg.Merge(m, src)
+func (m *InMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_InMsg.Merge(m, src)
 }
-func (m *ClientMsg) XXX_Size() int {
-	return xxx_messageInfo_ClientMsg.Size(m)
+func (m *InMsg) XXX_Size() int {
+	return xxx_messageInfo_InMsg.Size(m)
 }
-func (m *ClientMsg) XXX_DiscardUnknown() {
-	xxx_messageInfo_ClientMsg.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ClientMsg proto.InternalMessageInfo
-
-type isClientMsg_Message interface {
-	isClientMsg_Message()
+func (m *InMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_InMsg.DiscardUnknown(m)
 }
 
-type ClientMsg_Entry struct {
-	Entry *Entry `protobuf:"bytes,1,opt,name=entry,proto3,oneof"`
+var xxx_messageInfo_InMsg proto.InternalMessageInfo
+
+type isInMsg_Message interface {
+	isInMsg_Message()
 }
 
-type ClientMsg_Query struct {
-	Query *Query `protobuf:"bytes,2,opt,name=query,proto3,oneof"`
+type InMsg_Info struct {
+	Info *ConnInfo `protobuf:"bytes,1,opt,name=info,proto3,oneof"`
 }
 
-type ClientMsg_Sub struct {
-	Sub *Sub `protobuf:"bytes,3,opt,name=sub,proto3,oneof"`
+type InMsg_Entry struct {
+	Entry *Entry `protobuf:"bytes,2,opt,name=entry,proto3,oneof"`
 }
 
-type ClientMsg_Pub struct {
-	Pub *Pub `protobuf:"bytes,4,opt,name=pub,proto3,oneof"`
+type InMsg_Query struct {
+	Query *Query `protobuf:"bytes,3,opt,name=query,proto3,oneof"`
 }
 
-func (*ClientMsg_Entry) isClientMsg_Message() {}
+type InMsg_Sub struct {
+	Sub *Sub `protobuf:"bytes,4,opt,name=sub,proto3,oneof"`
+}
 
-func (*ClientMsg_Query) isClientMsg_Message() {}
+type InMsg_Pub struct {
+	Pub *Pub `protobuf:"bytes,5,opt,name=pub,proto3,oneof"`
+}
 
-func (*ClientMsg_Sub) isClientMsg_Message() {}
+func (*InMsg_Info) isInMsg_Message() {}
 
-func (*ClientMsg_Pub) isClientMsg_Message() {}
+func (*InMsg_Entry) isInMsg_Message() {}
 
-func (m *ClientMsg) GetMessage() isClientMsg_Message {
+func (*InMsg_Query) isInMsg_Message() {}
+
+func (*InMsg_Sub) isInMsg_Message() {}
+
+func (*InMsg_Pub) isInMsg_Message() {}
+
+func (m *InMsg) GetMessage() isInMsg_Message {
 	if m != nil {
 		return m.Message
 	}
 	return nil
 }
 
-func (m *ClientMsg) GetEntry() *Entry {
-	if x, ok := m.GetMessage().(*ClientMsg_Entry); ok {
+func (m *InMsg) GetInfo() *ConnInfo {
+	if x, ok := m.GetMessage().(*InMsg_Info); ok {
+		return x.Info
+	}
+	return nil
+}
+
+func (m *InMsg) GetEntry() *Entry {
+	if x, ok := m.GetMessage().(*InMsg_Entry); ok {
 		return x.Entry
 	}
 	return nil
 }
 
-func (m *ClientMsg) GetQuery() *Query {
-	if x, ok := m.GetMessage().(*ClientMsg_Query); ok {
+func (m *InMsg) GetQuery() *Query {
+	if x, ok := m.GetMessage().(*InMsg_Query); ok {
 		return x.Query
 	}
 	return nil
 }
 
-func (m *ClientMsg) GetSub() *Sub {
-	if x, ok := m.GetMessage().(*ClientMsg_Sub); ok {
+func (m *InMsg) GetSub() *Sub {
+	if x, ok := m.GetMessage().(*InMsg_Sub); ok {
 		return x.Sub
 	}
 	return nil
 }
 
-func (m *ClientMsg) GetPub() *Pub {
-	if x, ok := m.GetMessage().(*ClientMsg_Pub); ok {
+func (m *InMsg) GetPub() *Pub {
+	if x, ok := m.GetMessage().(*InMsg_Pub); ok {
 		return x.Pub
 	}
 	return nil
 }
 
 // XXX_OneofWrappers is for the internal use of the proto package.
-func (*ClientMsg) XXX_OneofWrappers() []interface{} {
+func (*InMsg) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*ClientMsg_Entry)(nil),
-		(*ClientMsg_Query)(nil),
-		(*ClientMsg_Sub)(nil),
-		(*ClientMsg_Pub)(nil),
+		(*InMsg_Info)(nil),
+		(*InMsg_Entry)(nil),
+		(*InMsg_Query)(nil),
+		(*InMsg_Sub)(nil),
+		(*InMsg_Pub)(nil),
 	}
 }
 
-type ServerMsg struct {
+type OutMsg struct {
 	// Types that are valid to be assigned to Message:
-	//	*ServerMsg_Info
-	//	*ServerMsg_Data
-	Message              isServerMsg_Message `protobuf_oneof:"Message"`
-	XXX_NoUnkeyedLiteral struct{}            `json:"-"`
-	XXX_unrecognized     []byte              `json:"-"`
-	XXX_sizecache        int32               `json:"-"`
+	//	*OutMsg_Info
+	//	*OutMsg_Data
+	Message              isOutMsg_Message `protobuf_oneof:"Message"`
+	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
+	XXX_unrecognized     []byte           `json:"-"`
+	XXX_sizecache        int32            `json:"-"`
 }
 
-func (m *ServerMsg) Reset()         { *m = ServerMsg{} }
-func (m *ServerMsg) String() string { return proto.CompactTextString(m) }
-func (*ServerMsg) ProtoMessage()    {}
-func (*ServerMsg) Descriptor() ([]byte, []int) {
+func (m *OutMsg) Reset()         { *m = OutMsg{} }
+func (m *OutMsg) String() string { return proto.CompactTextString(m) }
+func (*OutMsg) ProtoMessage()    {}
+func (*OutMsg) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2581e9e1a4f3b0d3, []int{3}
 }
 
-func (m *ServerMsg) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_ServerMsg.Unmarshal(m, b)
+func (m *OutMsg) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_OutMsg.Unmarshal(m, b)
 }
-func (m *ServerMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_ServerMsg.Marshal(b, m, deterministic)
+func (m *OutMsg) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_OutMsg.Marshal(b, m, deterministic)
 }
-func (m *ServerMsg) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_ServerMsg.Merge(m, src)
+func (m *OutMsg) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_OutMsg.Merge(m, src)
 }
-func (m *ServerMsg) XXX_Size() int {
-	return xxx_messageInfo_ServerMsg.Size(m)
+func (m *OutMsg) XXX_Size() int {
+	return xxx_messageInfo_OutMsg.Size(m)
 }
-func (m *ServerMsg) XXX_DiscardUnknown() {
-	xxx_messageInfo_ServerMsg.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_ServerMsg proto.InternalMessageInfo
-
-type isServerMsg_Message interface {
-	isServerMsg_Message()
+func (m *OutMsg) XXX_DiscardUnknown() {
+	xxx_messageInfo_OutMsg.DiscardUnknown(m)
 }
 
-type ServerMsg_Info struct {
-	Info *Info `protobuf:"bytes,1,opt,name=info,proto3,oneof"`
+var xxx_messageInfo_OutMsg proto.InternalMessageInfo
+
+type isOutMsg_Message interface {
+	isOutMsg_Message()
 }
 
-type ServerMsg_Data struct {
+type OutMsg_Info struct {
+	Info *ConnInfo `protobuf:"bytes,1,opt,name=info,proto3,oneof"`
+}
+
+type OutMsg_Data struct {
 	Data *Data `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
 }
 
-func (*ServerMsg_Info) isServerMsg_Message() {}
+func (*OutMsg_Info) isOutMsg_Message() {}
 
-func (*ServerMsg_Data) isServerMsg_Message() {}
+func (*OutMsg_Data) isOutMsg_Message() {}
 
-func (m *ServerMsg) GetMessage() isServerMsg_Message {
+func (m *OutMsg) GetMessage() isOutMsg_Message {
 	if m != nil {
 		return m.Message
 	}
 	return nil
 }
 
-func (m *ServerMsg) GetInfo() *Info {
-	if x, ok := m.GetMessage().(*ServerMsg_Info); ok {
+func (m *OutMsg) GetInfo() *ConnInfo {
+	if x, ok := m.GetMessage().(*OutMsg_Info); ok {
 		return x.Info
 	}
 	return nil
 }
 
-func (m *ServerMsg) GetData() *Data {
-	if x, ok := m.GetMessage().(*ServerMsg_Data); ok {
+func (m *OutMsg) GetData() *Data {
+	if x, ok := m.GetMessage().(*OutMsg_Data); ok {
 		return x.Data
 	}
 	return nil
 }
 
 // XXX_OneofWrappers is for the internal use of the proto package.
-func (*ServerMsg) XXX_OneofWrappers() []interface{} {
+func (*OutMsg) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*ServerMsg_Info)(nil),
-		(*ServerMsg_Data)(nil),
+		(*OutMsg_Info)(nil),
+		(*OutMsg_Data)(nil),
 	}
 }
 
@@ -480,53 +479,6 @@ func (m *Pub) GetPayload() []byte {
 	return nil
 }
 
-type Info struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Seq                  uint64   `protobuf:"varint,2,opt,name=seq,proto3" json:"seq,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Info) Reset()         { *m = Info{} }
-func (m *Info) String() string { return proto.CompactTextString(m) }
-func (*Info) ProtoMessage()    {}
-func (*Info) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{8}
-}
-
-func (m *Info) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Info.Unmarshal(m, b)
-}
-func (m *Info) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Info.Marshal(b, m, deterministic)
-}
-func (m *Info) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Info.Merge(m, src)
-}
-func (m *Info) XXX_Size() int {
-	return xxx_messageInfo_Info.Size(m)
-}
-func (m *Info) XXX_DiscardUnknown() {
-	xxx_messageInfo_Info.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Info proto.InternalMessageInfo
-
-func (m *Info) GetTopic() []byte {
-	if m != nil {
-		return m.Topic
-	}
-	return nil
-}
-
-func (m *Info) GetSeq() uint64 {
-	if m != nil {
-		return m.Seq
-	}
-	return 0
-}
-
 type Data struct {
 	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
 	Content              []byte   `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
@@ -539,7 +491,7 @@ func (m *Data) Reset()         { *m = Data{} }
 func (m *Data) String() string { return proto.CompactTextString(m) }
 func (*Data) ProtoMessage()    {}
 func (*Data) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{9}
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{8}
 }
 
 func (m *Data) XXX_Unmarshal(b []byte) error {
@@ -577,48 +529,43 @@ func (m *Data) GetContent() []byte {
 func init() {
 	proto.RegisterType((*Empty)(nil), "unitd.Empty")
 	proto.RegisterType((*ConnInfo)(nil), "unitd.ConnInfo")
-	proto.RegisterType((*ClientMsg)(nil), "unitd.ClientMsg")
-	proto.RegisterType((*ServerMsg)(nil), "unitd.ServerMsg")
+	proto.RegisterType((*InMsg)(nil), "unitd.InMsg")
+	proto.RegisterType((*OutMsg)(nil), "unitd.OutMsg")
 	proto.RegisterType((*Entry)(nil), "unitd.Entry")
 	proto.RegisterType((*Query)(nil), "unitd.Query")
 	proto.RegisterType((*Sub)(nil), "unitd.Sub")
 	proto.RegisterType((*Pub)(nil), "unitd.Pub")
-	proto.RegisterType((*Info)(nil), "unitd.Info")
 	proto.RegisterType((*Data)(nil), "unitd.Data")
 }
 
 func init() { proto.RegisterFile("unitd.proto", fileDescriptor_2581e9e1a4f3b0d3) }
 
 var fileDescriptor_2581e9e1a4f3b0d3 = []byte{
-	// 437 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x7c, 0x93, 0xcf, 0x6a, 0xdb, 0x40,
-	0x10, 0xc6, 0xa5, 0x4a, 0x1b, 0x47, 0x63, 0x43, 0xc3, 0x92, 0x83, 0x70, 0xa0, 0xb4, 0x4b, 0x0e,
-	0x81, 0x82, 0x09, 0x0e, 0x6d, 0xef, 0x49, 0x03, 0xce, 0x21, 0x90, 0x4a, 0xf4, 0xd2, 0x16, 0xca,
-	0xca, 0xda, 0x04, 0x51, 0x7b, 0x57, 0x59, 0x8d, 0x5a, 0xf4, 0x0e, 0x7d, 0x8a, 0x3e, 0x69, 0x99,
-	0x91, 0x94, 0x36, 0x25, 0xee, 0xcd, 0xdf, 0xfc, 0xbe, 0xf9, 0xa3, 0xf1, 0x2c, 0x4c, 0x5b, 0x5b,
-	0x61, 0xb9, 0xa8, 0xbd, 0x43, 0x27, 0x05, 0x0b, 0x35, 0x01, 0x71, 0xb9, 0xad, 0xb1, 0x53, 0x9f,
-	0x61, 0xff, 0xc2, 0x59, 0x7b, 0x65, 0x6f, 0x9d, 0x3c, 0x82, 0x64, 0xbd, 0xa9, 0x8c, 0xc5, 0xaf,
-	0x55, 0x99, 0x86, 0x2f, 0xc3, 0x93, 0x24, 0xdb, 0xef, 0x03, 0x57, 0xa5, 0x4c, 0x61, 0x62, 0x0d,
-	0xfe, 0x70, 0xfe, 0x5b, 0xfa, 0x8c, 0xd1, 0x28, 0x89, 0xe8, 0xb2, 0xf4, 0xa6, 0x69, 0xd2, 0xa8,
-	0x27, 0x83, 0x54, 0xbf, 0x42, 0x48, 0x2e, 0xb8, 0xc0, 0x75, 0x73, 0x27, 0x8f, 0x41, 0x18, 0x8b,
-	0xbe, 0xe3, 0xd2, 0xd3, 0xe5, 0x6c, 0xd1, 0xcf, 0x75, 0x49, 0xb1, 0x55, 0x90, 0xf5, 0x90, 0x5c,
-	0xf7, 0xad, 0xf1, 0x1d, 0x77, 0xf9, 0xe3, 0xfa, 0x40, 0x31, 0x72, 0x31, 0x94, 0x2f, 0x20, 0x6a,
-	0xda, 0x82, 0xfb, 0x4d, 0x97, 0x30, 0x78, 0xf2, 0xb6, 0x58, 0x05, 0x19, 0x01, 0xe2, 0x75, 0x5b,
-	0xa4, 0xf1, 0x23, 0x7e, 0xd3, 0xf3, 0xba, 0x2d, 0xce, 0x13, 0x98, 0x5c, 0x9b, 0xa6, 0xd1, 0x77,
-	0x46, 0x7d, 0x81, 0x24, 0x37, 0xfe, 0xbb, 0xf1, 0x34, 0xe3, 0x2b, 0x88, 0x2b, 0x7b, 0xeb, 0x86,
-	0x11, 0xa7, 0x43, 0x22, 0x6d, 0x67, 0x15, 0x64, 0x8c, 0xc8, 0x52, 0x6a, 0xd4, 0xc3, 0x7c, 0xa3,
-	0xe5, 0xbd, 0x46, 0x4d, 0x16, 0x42, 0x7f, 0x57, 0x7f, 0x07, 0x82, 0x3f, 0x50, 0x1e, 0x82, 0x40,
-	0x57, 0x57, 0x6b, 0x2e, 0x3d, 0xcb, 0x7a, 0x41, 0xbb, 0xab, 0x75, 0xb7, 0x71, 0xba, 0xe4, 0x7a,
-	0xb3, 0x6c, 0x94, 0xea, 0x0c, 0x04, 0x7f, 0xf3, 0x8e, 0xc4, 0x43, 0x10, 0x9b, 0x6a, 0x5b, 0x21,
-	0xa7, 0x89, 0xac, 0x17, 0xea, 0x08, 0xa2, 0xbc, 0x2d, 0x9e, 0x4e, 0x51, 0x6f, 0x20, 0xba, 0xd9,
-	0x05, 0xff, 0x33, 0xc8, 0x02, 0x62, 0xbe, 0x8e, 0xa7, 0xf3, 0x0e, 0x20, 0x6a, 0xcc, 0x3d, 0xe7,
-	0xc4, 0x19, 0xfd, 0x54, 0x6f, 0x21, 0xa6, 0x65, 0xec, 0xee, 0xb3, 0x76, 0x16, 0x8d, 0xc5, 0xb1,
-	0xcf, 0x20, 0x97, 0x3f, 0x43, 0x10, 0x1f, 0x69, 0x97, 0xf2, 0x35, 0x88, 0x1c, 0xb5, 0x47, 0xf9,
-	0x7c, 0x58, 0xee, 0x78, 0xa1, 0xf3, 0x7f, 0x03, 0x2a, 0x90, 0xa7, 0xb0, 0x97, 0xa3, 0x37, 0x7a,
-	0x2b, 0x0f, 0x46, 0x38, 0x5e, 0xdc, 0x7c, 0x8c, 0x3c, 0xfc, 0xbf, 0x27, 0xe1, 0x69, 0x28, 0x8f,
-	0x21, 0xce, 0xd1, 0xd5, 0xf2, 0xe1, 0x00, 0xe9, 0x21, 0xcc, 0x1f, 0x29, 0x15, 0x9c, 0x4f, 0x3e,
-	0xf5, 0x4f, 0xa5, 0xd8, 0xe3, 0x87, 0x73, 0xf6, 0x3b, 0x00, 0x00, 0xff, 0xff, 0x0a, 0x1c, 0xe6,
-	0xe2, 0x47, 0x03, 0x00, 0x00,
+	// 382 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x51, 0x6b, 0xe2, 0x40,
+	0x14, 0x85, 0x93, 0x4d, 0xc6, 0xe8, 0x55, 0x58, 0x18, 0x7c, 0x08, 0x0a, 0xcb, 0xee, 0xe0, 0xb2,
+	0xc2, 0x82, 0x2c, 0xca, 0xee, 0xbe, 0xdb, 0x0a, 0xfa, 0x20, 0xb5, 0x09, 0x7d, 0x29, 0x94, 0x32,
+	0x31, 0x51, 0x02, 0x3a, 0x93, 0x26, 0x77, 0x1e, 0xf2, 0x17, 0xfa, 0xbf, 0xfa, 0xbf, 0xca, 0x4c,
+	0x62, 0xa9, 0x52, 0x5b, 0xfa, 0x78, 0xee, 0xf9, 0xce, 0x65, 0xce, 0x70, 0xa1, 0xad, 0x44, 0x8a,
+	0xf1, 0x28, 0xcb, 0x25, 0x4a, 0x4a, 0x8c, 0x60, 0x1e, 0x90, 0xd9, 0x3e, 0xc3, 0x92, 0xfd, 0x82,
+	0xe6, 0x85, 0x14, 0x62, 0x21, 0x36, 0x92, 0xf6, 0xa1, 0xb5, 0xde, 0xa5, 0x89, 0xc0, 0xfb, 0x34,
+	0xf6, 0xed, 0xef, 0xf6, 0xb0, 0x13, 0x34, 0xab, 0xc1, 0x22, 0x66, 0x4f, 0x36, 0x90, 0x85, 0x58,
+	0x16, 0x5b, 0xfa, 0x13, 0xdc, 0x54, 0x6c, 0xa4, 0x21, 0xda, 0xe3, 0xaf, 0xa3, 0x6a, 0xfd, 0x61,
+	0xcb, 0xdc, 0x0a, 0x8c, 0x4d, 0x07, 0x40, 0x12, 0x81, 0x79, 0xe9, 0x7f, 0x31, 0x5c, 0xa7, 0xe6,
+	0x66, 0x7a, 0x36, 0xb7, 0x82, 0xca, 0xd4, 0xd4, 0x83, 0x4a, 0xf2, 0xd2, 0x77, 0x8e, 0xa8, 0x6b,
+	0x3d, 0xd3, 0x94, 0x31, 0xe9, 0x37, 0x70, 0x0a, 0x15, 0xf9, 0xae, 0x61, 0xa0, 0x66, 0x42, 0x15,
+	0xcd, 0xad, 0x40, 0x1b, 0xda, 0xcf, 0x54, 0xe4, 0x93, 0x23, 0x7f, 0x55, 0xf9, 0x99, 0x8a, 0xa6,
+	0x2d, 0xf0, 0x96, 0x49, 0x51, 0xf0, 0x6d, 0xc2, 0xee, 0xa0, 0x71, 0xa5, 0xf0, 0x13, 0x3d, 0x7e,
+	0x80, 0x1b, 0x73, 0xe4, 0x75, 0x8d, 0x76, 0x8d, 0x5d, 0x72, 0xe4, 0x1a, 0xd1, 0xd6, 0xeb, 0xf5,
+	0xff, 0x81, 0x98, 0x86, 0xb4, 0x0b, 0x04, 0x65, 0x96, 0xae, 0xeb, 0x8f, 0xac, 0x04, 0xf5, 0xc1,
+	0xcb, 0x78, 0xb9, 0x93, 0x3c, 0x36, 0xfb, 0x3a, 0xc1, 0x41, 0xb2, 0x09, 0x10, 0x53, 0xfa, 0x4c,
+	0xb0, 0x0b, 0x64, 0x97, 0xee, 0x53, 0x34, 0x31, 0x12, 0x54, 0x82, 0xf5, 0xc1, 0x09, 0x55, 0xf4,
+	0x76, 0x84, 0xfd, 0x05, 0x67, 0x75, 0xce, 0x7c, 0xe7, 0x21, 0xff, 0xc0, 0xd5, 0xe5, 0xce, 0xe7,
+	0xd6, 0x52, 0x60, 0x22, 0xf0, 0x90, 0xab, 0xe5, 0xf8, 0xd1, 0x06, 0x72, 0xa3, 0xff, 0x86, 0xfe,
+	0x06, 0x12, 0x22, 0xcf, 0x91, 0x9e, 0xfe, 0x69, 0xef, 0x74, 0xc0, 0x2c, 0x3a, 0x82, 0x46, 0x88,
+	0x79, 0xc2, 0xf7, 0x1f, 0xd3, 0x43, 0xfb, 0x8f, 0x4d, 0x07, 0xe0, 0x86, 0x28, 0x33, 0xfa, 0x72,
+	0x4f, 0xfa, 0x8c, 0x7b, 0x47, 0x8a, 0x59, 0x53, 0xef, 0xb6, 0x3a, 0xf4, 0xa8, 0x61, 0xce, 0x7e,
+	0xf2, 0x1c, 0x00, 0x00, 0xff, 0xff, 0x9a, 0x56, 0x10, 0xc3, 0x05, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -665,8 +612,8 @@ func (c *unitdClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Unit
 }
 
 type Unitd_StreamClient interface {
-	Send(*ClientMsg) error
-	Recv() (*ServerMsg, error)
+	Send(*ConnInfo) error
+	Recv() (*ConnInfo, error)
 	grpc.ClientStream
 }
 
@@ -674,12 +621,12 @@ type unitdStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *unitdStreamClient) Send(m *ClientMsg) error {
+func (x *unitdStreamClient) Send(m *ConnInfo) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *unitdStreamClient) Recv() (*ServerMsg, error) {
-	m := new(ServerMsg)
+func (x *unitdStreamClient) Recv() (*ConnInfo, error) {
+	m := new(ConnInfo)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -743,8 +690,8 @@ func _Unitd_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Unitd_StreamServer interface {
-	Send(*ServerMsg) error
-	Recv() (*ClientMsg, error)
+	Send(*ConnInfo) error
+	Recv() (*ConnInfo, error)
 	grpc.ServerStream
 }
 
@@ -752,12 +699,12 @@ type unitdStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *unitdStreamServer) Send(m *ServerMsg) error {
+func (x *unitdStreamServer) Send(m *ConnInfo) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *unitdStreamServer) Recv() (*ClientMsg, error) {
-	m := new(ClientMsg)
+func (x *unitdStreamServer) Recv() (*ConnInfo, error) {
+	m := new(ConnInfo)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

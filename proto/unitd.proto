@@ -6,7 +6,7 @@ option go_package='unitd';
 
 service Unitd {
 rpc Start (ConnInfo) returns (ConnInfo){}
-rpc Stream (stream ClientMsg) returns (stream ServerMsg);
+rpc Stream (stream ConnInfo) returns (stream ConnInfo);
 
 rpc Stop (Empty) returns (Empty){}
 }
@@ -14,25 +14,25 @@ rpc Stop (Empty) returns (Empty){}
 message Empty {
 }
 
-
 message ConnInfo {
-string client_id=1;
-string network=2;
-string address=3;
+bytes client_id=1;
+//string network=2;
+//string address=3;
 }
 
-message ClientMsg {
+message InMsg {
 	oneof Message {
-		Entry entry=1;
-		Query query = 2;
-		Sub sub = 3;
-		Pub pub = 4;
+		ConnInfo  info = 1;
+		Entry entry=2;
+		Query query = 3;
+		Sub sub = 4;
+		Pub pub = 5;
 	}
 }
 
-message ServerMsg {
+message OutMsg {
 	oneof Message {
-		Info info=1;
+		ConnInfo info=1;
 		Data data = 2;
 	}
 }
@@ -56,15 +56,7 @@ bytes topic=1;
 bytes payload=2;
 }
 
-message Info {
-bytes topic=1;
-uint64 seq=2;
-}
-
 message Data {
 bytes topic=1;
 bytes content=2;
 }
-
-
-

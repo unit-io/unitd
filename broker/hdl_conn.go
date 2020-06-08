@@ -8,11 +8,11 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
-	"github.com/unit-io/unitd/mqtt"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
 	"github.com/unit-io/unitd/pkg/uid"
+	"github.com/unit-io/unitd/plugins/mqtt"
 	"github.com/unit-io/unitd/store"
 	"github.com/unit-io/unitd/types"
 )
@@ -34,15 +34,24 @@ func (c *Conn) Handler() error {
 		// Set read/write deadlines so we can close dangling connections
 		c.socket.SetDeadline(time.Now().Add(time.Second * 120))
 
-		// Decode an incoming MQTT packet
-		pkt, err := mqtt.DecodePacket(reader)
-		if err != nil {
-			return err
-		}
+		switch c.proto {
+		case types.GRPC:
+			buffer := make([]byte, 52)
+			reader.Read(buffer)
+			if !c.SendRawBytes(buffer) {
+				return errors.New("conn.handler: The network connection timeout.")
+			}
+		default:
+			// Decode an incoming MQTT packet
+			pkt, err := mqtt.DecodePacket(reader)
+			if err != nil {
+				return err
+			}
 
-		// Mqtt message handler
-		if err := c.handler(pkt); err != nil {
-			return err
+			// Mqtt message handler
+			if err := c.handler(pkt); err != nil {
+				return err
+			}
 		}
 	}
 }
