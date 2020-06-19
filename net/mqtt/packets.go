@@ -1,4 +1,4 @@
-package grpc
+package mqtt
 
 import (
 	"bytes"
@@ -6,134 +6,101 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/unit-io/unitd/plugins"
+	lp "github.com/unit-io/unitd/net"
 )
 
 // varHeader reserves the bytes for a variable header.
 var varHeader = []byte{0x0, 0x0, 0x0, 0x0}
 
-type Packet plugins.Packet
+type Packet lp.Packet
 
-// GRPC message types
-const (
-	CONNECT = uint8(iota + 1)
-	CONNACK
-	PUBLISH
-	PUBACK
-	PUBREC
-	PUBREL
-	PUBCOMP
-	SUBSCRIBE
-	SUBACK
-	UNSUBSCRIBE
-	UNSUBACK
-	PINGREQ
-	PINGRESP
-	DISCONNECT
-)
+type FixedHeader lp.FixedHeader
 
-// FixedHeader
-type FixedHeader struct {
-	DUP    bool
-	Retain bool
-	QOS    uint8
-}
-
-// unpackPacket unpacks the packet from the provided reader.
-func DecodePacket(rdr io.Reader) (Packet, error) {
-	hdr, sizeOf, packetType, err := unpackFixedHeader(rdr)
-	if err != nil {
+// ReadPacket unpacks the packet from the provided reader.
+func ReadPacket(r io.Reader) (Packet, error) {
+	var fh FixedHeader
+	if err := fh.unpack(r); err != nil {
 		return nil, err
 	}
 
 	// Check for empty packets
-	switch packetType {
-	case PINGREQ:
+	switch fh.MessageType {
+	case lp.PINGREQ:
 		return &Pingreq{}, nil
-	case PINGRESP:
+	case lp.PINGRESP:
 		return &Pingresp{}, nil
-	case DISCONNECT:
+	case lp.DISCONNECT:
 		return &Disconnect{}, nil
 	}
 
-	buffer := make([]byte, sizeOf)
-	_, err = io.ReadFull(rdr, buffer)
-	if err != nil {
+	buffer := make([]byte, fh.RemainingLength)
+	if _, err := io.ReadFull(r, buffer); err != nil {
 		return nil, err
 	}
 
 	// unpack the body
 	var pkt Packet
-	switch packetType {
-	case CONNECT:
-		pkt = unpackConnect(buffer, hdr)
-	case CONNACK:
-		pkt = unpackConnack(buffer, hdr)
-	case PUBLISH:
-		pkt = unpackPublish(buffer, hdr)
-	case PUBACK:
-		pkt = unpackPuback(buffer, hdr)
-	case PUBREC:
-		pkt = unpackPubrec(buffer, hdr)
-	case PUBREL:
-		pkt = unpackPubrel(buffer, hdr)
-	case PUBCOMP:
-		pkt = unpackPubcomp(buffer, hdr)
-	case SUBSCRIBE:
-		pkt = unpackSubscribe(buffer, hdr)
-	case SUBACK:
-		pkt = unpackSuback(buffer, hdr)
-	case UNSUBSCRIBE:
-		pkt = unpackUnsubscribe(buffer, hdr)
-	case UNSUBACK:
-		pkt = unpackUnsuback(buffer, hdr)
+	switch fh.MessageType {
+	case lp.CONNECT:
+		pkt = unpackConnect(buffer, fh)
+	case lp.CONNACK:
+		pkt = unpackConnack(buffer, fh)
+	case lp.PUBLISH:
+		pkt = unpackPublish(buffer, fh)
+	case lp.PUBACK:
+		pkt = unpackPuback(buffer, fh)
+	case lp.PUBREC:
+		pkt = unpackPubrec(buffer, fh)
+	case lp.PUBREL:
+		pkt = unpackPubrel(buffer, fh)
+	case lp.PUBCOMP:
+		pkt = unpackPubcomp(buffer, fh)
+	case lp.SUBSCRIBE:
+		pkt = unpackSubscribe(buffer, fh)
+	case lp.SUBACK:
+		pkt = unpackSuback(buffer, fh)
+	case lp.UNSUBSCRIBE:
+		pkt = unpackUnsubscribe(buffer, fh)
+	case lp.UNSUBACK:
+		pkt = unpackUnsuback(buffer, fh)
 	default:
-		return nil, fmt.Errorf("Invalid zero-length packet with type %d", packetType)
+		return nil, fmt.Errorf("Invalid zero-length packet with type %d", fh.MessageType)
 	}
 
 	return pkt, nil
 }
 
-// encodeParts sews the whole packet together
-func encodeParts(pktType uint8, length int, h *FixedHeader) bytes.Buffer {
+func (fh *FixedHeader) pack(h *lp.FixedHeader) bytes.Buffer {
 	var buf bytes.Buffer
 	var firstByte byte
-	firstByte |= pktType << 4
+	firstByte |= fh.MessageType << 4
 	if h != nil {
 		firstByte |= boolToUInt8(h.DUP) << 3
 		firstByte |= h.QOS << 1
 		firstByte |= boolToUInt8(h.Retain)
 	}
 	buf.WriteByte(firstByte)
-	buf.Write(encodeLength(length))
+	buf.Write(encodeLength(fh.RemainingLength))
 	return buf
 }
 
-// unpackFixedHeader unpacks the header
-func unpackFixedHeader(rdr io.Reader) (hdr *FixedHeader, length uint32, packetType uint8, err error) {
+func (fh *FixedHeader) unpack(r io.Reader) error {
 	b := make([]byte, 1)
-	if _, err = io.ReadFull(rdr, b); err != nil {
-		return nil, 0, 0, err
+	if _, err := io.ReadFull(r, b); err != nil {
+		return err
 	}
-
 	controlByte := b[0]
-	packetType = (controlByte & 0xf0) >> 4
-
+	fh.MessageType = (controlByte & 0xf0) >> 4
 	// Set the header depending on the packet type
-	switch packetType {
-	case PUBLISH, SUBSCRIBE, UNSUBSCRIBE, PUBREL:
-		DUP := controlByte&0x08 > 0
-		QOS := controlByte & 0x06 >> 1
-		retain := controlByte&0x01 > 0
-
-		hdr = &FixedHeader{
-			DUP:    DUP,
-			QOS:    QOS,
-			Retain: retain,
-		}
+	switch fh.MessageType {
+	case lp.PUBLISH, lp.SUBSCRIBE, lp.UNSUBSCRIBE, lp.PUBREL:
+		fh.DUP = controlByte&0x08 > 0
+		fh.QOS = controlByte & 0x06 >> 1
+		fh.Retain = controlByte&0x01 > 0
 	}
 
-	return hdr, decodeLength(rdr), packetType, nil
+	fh.RemainingLength = decodeLength(r)
+	return nil
 }
 
 // -------------------------------------------------------------
@@ -253,7 +220,7 @@ func encodeLength(length int) []byte {
 	return encLength
 }
 
-func decodeLength(r io.Reader) uint32 {
+func decodeLength(r io.Reader) int {
 	var rLength uint32
 	var multiplier uint32 = 0
 	b := make([]byte, 1)
@@ -266,5 +233,5 @@ func decodeLength(r io.Reader) uint32 {
 		}
 		multiplier += 7
 	}
-	return rLength
+	return int(rLength)
 }

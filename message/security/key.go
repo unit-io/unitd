@@ -84,7 +84,8 @@ func ParseKey(text []byte) (topic *Topic) {
 
 	parts := bytes.FieldsFunc(text, fn.splitKey)
 	if parts == nil || len(parts) < 2 {
-		topic.TopicType = TopicInvalid
+		// topic.TopicType = TopicInvalid
+		topic.Topic = parts[0]
 		return topic
 	}
 	topic.Key = parts[0]

@@ -3,16 +3,17 @@ package broker
 import (
 	"bufio"
 	"encoding/json"
-	"errors"
 	"time"
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
+	lp "github.com/unit-io/unitd/net" // line protocol
+	"github.com/unit-io/unitd/net/grpc"
+	"github.com/unit-io/unitd/net/mqtt"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
 	"github.com/unit-io/unitd/pkg/uid"
-	"github.com/unit-io/unitd/plugins/mqtt"
 	"github.com/unit-io/unitd/store"
 	"github.com/unit-io/unitd/types"
 )
@@ -22,7 +23,7 @@ const (
 	requestKeygen   = 812942072  // hash("keygen")
 )
 
-func (c *Conn) Handler() error {
+func (c *Conn) readLoop() error {
 	defer func() {
 		log.Info("conn.Handler", "closing...")
 		c.close()
@@ -35,15 +36,20 @@ func (c *Conn) Handler() error {
 		c.socket.SetDeadline(time.Now().Add(time.Second * 120))
 
 		switch c.proto {
-		case types.GRPC:
-			buffer := make([]byte, 52)
-			reader.Read(buffer)
-			if !c.SendRawBytes(buffer) {
-				return errors.New("conn.handler: The network connection timeout.")
+		case lp.GRPC:
+			// Decode an incoming grpc packet
+			pkt, err := grpc.ReadPacket(reader)
+			if err != nil {
+				return err
+			}
+
+			// Grpc message handler
+			if err := c.handler(pkt); err != nil {
+				return err
 			}
 		default:
 			// Decode an incoming MQTT packet
-			pkt, err := mqtt.DecodePacket(reader)
+			pkt, err := mqtt.ReadPacket(reader)
 			if err != nil {
 				return err
 			}
@@ -57,7 +63,7 @@ func (c *Conn) Handler() error {
 }
 
 // handle handles an MQTT receive.
-func (c *Conn) handler(pkt mqtt.Packet) error {
+func (c *Conn) handler(pkt lp.Packet) error {
 	start := time.Now()
 	var status int = 200
 	defer func() {
@@ -66,9 +72,18 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 	}()
 
 	switch pkt.Type() {
-	// An attempt to connect to MQTT.
-	case mqtt.CONNECT:
-		packet := pkt.(*mqtt.Connect)
+	// An attempt to connec.
+	case lp.CONNECT:
+		// packet := pkt.(*lp.Connect)
+		var packet lp.Connect
+		// copier.Copy(packet, pkt)
+		if c.proto == lp.GRPC {
+			packet = lp.Connect(*pkt.(*grpc.Connect))
+		} else {
+			packet = lp.Connect(*pkt.(*mqtt.Connect))
+		}
+
+		c.insecure = packet.InsecureFlag
 		c.username = string(packet.Username)
 		clientid, err := c.onConnect(packet.ClientID)
 		if err != nil {
@@ -80,17 +95,30 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 		c.clientid = clientid
 
 		// Write the ack
-		ack := mqtt.Connack{ReturnCode: 0x00}
-		if !c.SendRawBytes(ack.Encode()) {
-			return errors.New("conn.handler: The network connection timeout.")
+		if c.proto == lp.GRPC {
+			// Acknowledge the subscription
+			ack := grpc.Connack{ReturnCode: 0x00}
+			_, err := ack.WriteTo(c.socket)
+			return err
 		}
-
+		ack := mqtt.Connack{ReturnCode: 0x00}
+		if _, err := ack.WriteTo(c.socket); err != nil {
+			return err
+		}
 		return nil
 
 		// An attempt to subscribe to a topic.
-	case mqtt.SUBSCRIBE:
-		packet := pkt.(*mqtt.Subscribe)
-		ack := mqtt.Suback{
+	case lp.SUBSCRIBE:
+		// packet := pkt.(lp.Subscribe)
+		var packet lp.Subscribe
+		// copier.Copy(packet, pkt)
+		if c.proto == lp.GRPC {
+			sub := pkt.(*grpc.Subscribe)
+			packet = lp.Subscribe(*sub)
+		} else {
+			packet = lp.Subscribe(*pkt.(*mqtt.Subscribe))
+		}
+		ack := lp.Suback{
 			MessageID: packet.MessageID,
 			Qos:       make([]uint8, 0, len(packet.Subscriptions)),
 		}
@@ -111,18 +139,29 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 		if packet.IsForwarded {
 			return nil
 		}
-
-		// Acknowledge the subscription
-		if !c.SendRawBytes(ack.Encode()) {
-			return errors.New("conn.handler: The network connection timeout.")
+		if c.proto == lp.GRPC {
+			// Acknowledge the subscription
+			ack := grpc.Suback(ack)
+			_, err := ack.WriteTo(c.socket)
+			return err
 		}
-
+		suback := mqtt.Suback(ack)
+		if _, err := suback.WriteTo(c.socket); err != nil {
+			return err
+		}
 		return nil
 
 	// An attempt to unsubscribe from a topic.
-	case mqtt.UNSUBSCRIBE:
-		packet := pkt.(*mqtt.Unsubscribe)
-		ack := mqtt.Unsuback{MessageID: packet.MessageID}
+	case lp.UNSUBSCRIBE:
+		// packet := pkt.(lp.Unsubscribe)
+		var packet lp.Unsubscribe
+		// copier.Copy(packet, pkt)
+		if c.proto == lp.GRPC {
+			packet = lp.Unsubscribe(*pkt.(*grpc.Unsubscribe))
+		} else {
+			packet = lp.Unsubscribe(*pkt.(*mqtt.Unsubscribe))
+		}
+		ack := lp.Unsuback{MessageID: packet.MessageID}
 
 		// Unsubscribe from each subscription
 		for _, sub := range packet.Topics {
@@ -133,39 +172,59 @@ func (c *Conn) handler(pkt mqtt.Packet) error {
 		}
 
 		// Acknowledge the unsubscription
-		if !c.SendRawBytes(ack.Encode()) {
-			return errors.New("conn.handler: The network connection timeout.")
+		if c.proto == lp.GRPC {
+			// Acknowledge the subscription
+			ack := grpc.Unsuback(ack)
+			_, err := ack.WriteTo(c.socket)
+			return err
 		}
-
+		unsuback := mqtt.Unsuback(ack)
+		if _, err := unsuback.WriteTo(c.socket); err != nil {
+			return err
+		}
 		return nil
 
-	// MQTT ping response, respond appropriately.
-	case mqtt.PINGREQ:
+	// Ping response, respond appropriately.
+	case lp.PINGREQ:
+		if c.proto == lp.GRPC {
+			ack := grpc.Pingresp{}
+			_, err := ack.WriteTo(c.socket)
+			return err
+		}
 		ack := mqtt.Pingresp{}
-		if !c.SendRawBytes(ack.Encode()) {
-			return errors.New("conn.handler: The network connection timeout.")
+		if _, err := ack.WriteTo(c.socket); err != nil {
+			return err
 		}
 		return nil
 
-	case mqtt.DISCONNECT:
+	case lp.DISCONNECT:
 		return nil
 
-	case mqtt.PUBLISH:
-		packet := pkt.(*mqtt.Publish)
-
+	case lp.PUBLISH:
+		var packet lp.Publish
+		if c.proto == lp.GRPC {
+			packet = lp.Publish(*pkt.(*grpc.Publish))
+		} else {
+			packet = lp.Publish(*pkt.(*mqtt.Publish))
+		}
 		if err := c.onPublish(packet, packet.Topic, packet.Payload); err != nil {
 			status = err.Status
 			c.notifyError(err, packet.MessageID)
 		}
 
 		// Acknowledge the publication
-		if packet.Header.QOS > 0 {
-			ack := mqtt.Puback{MessageID: packet.MessageID}
-			if !c.SendRawBytes(ack.Encode()) {
-				return errors.New("conn.handler: The network connection timeout.")
+		if packet.FixedHeader.QOS > 0 {
+			if c.proto == lp.GRPC {
+				ack := grpc.Puback{MessageID: packet.MessageID}
+				_, err := ack.WriteTo(c.socket)
+				return err
 			}
+			ack := mqtt.Puback{MessageID: packet.MessageID}
+			if _, err := ack.WriteTo(c.socket); err != nil {
+				return err
+			}
+			return nil
 		}
-		return nil
 	}
 
 	return nil
@@ -207,31 +266,20 @@ func (c *Conn) onConnect(clientID []byte) (uid.ID, *types.Error) {
 }
 
 // onSubscribe is a handler for MQTT Subscribe events.
-func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
+func (c *Conn) onSubscribe(pkt lp.Subscribe, msgTopic []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse Key
-	topic := security.ParseKey(mqttTopic)
+	topic := security.ParseKey(msgTopic)
 	if topic.TopicType == security.TopicInvalid {
 		return types.ErrBadRequest
 	}
 
-	// Attempt to decode the key
-	key, err := security.DecodeKey(topic.Key)
-	if err != nil {
-		return types.ErrBadRequest
-	}
-
-	// Check if the key has the permission to read the topic
-	if !key.HasPermission(security.AllowRead) {
-		return types.ErrUnauthorized
-	}
-
-	// Check if the key has the permission for the topic
-	ok, _ := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
-	if !ok {
-		return types.ErrUnauthorized
+	if !c.insecure {
+		if _, err := c.onSecureRequest(topic); err != nil {
+			return err
+		}
 	}
 
 	c.subscribe(pkt, topic)
@@ -248,7 +296,6 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 		msg := m // Copy message
 		c.SendMessage(&msg)
 	}
-	// }
 
 	return nil
 }
@@ -256,31 +303,20 @@ func (c *Conn) onSubscribe(pkt *mqtt.Subscribe, mqttTopic []byte) *types.Error {
 // ------------------------------------------------------------------------------------
 
 // onUnsubscribe is a handler for MQTT Unsubscribe events.
-func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Error {
+func (c *Conn) onUnsubscribe(pkt lp.Unsubscribe, msgTopic []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onUnsubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse the key
-	topic := security.ParseKey(mqttTopic)
+	topic := security.ParseKey(msgTopic)
 	if topic.TopicType == security.TopicInvalid {
 		return types.ErrBadRequest
 	}
 
-	// Attempt to decode the key
-	key, err := security.DecodeKey(topic.Key)
-	if err != nil {
-		return types.ErrBadRequest
-	}
-
-	// Check if the key has the permission to read the topic
-	if !key.HasPermission(security.AllowRead) {
-		return types.ErrUnauthorized
-	}
-
-	// Check if the key has the permission for the topic
-	ok, _ := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
-	if !ok {
-		return types.ErrUnauthorized
+	if !c.insecure {
+		if _, err := c.onSecureRequest(topic); err != nil {
+			return err
+		}
 	}
 
 	c.unsubscribe(pkt, topic)
@@ -289,12 +325,12 @@ func (c *Conn) onUnsubscribe(pkt *mqtt.Unsubscribe, mqttTopic []byte) *types.Err
 }
 
 // OnPublish is a handler for MQTT Publish events.
-func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *types.Error {
+func (c *Conn) onPublish(pkt lp.Publish, msgTopic []byte, payload []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
 	//Parse the Key
-	topic := security.ParseKey(mqttTopic)
+	topic := security.ParseKey(msgTopic)
 	if topic.TopicType == security.TopicInvalid {
 		return types.ErrBadRequest
 	}
@@ -305,28 +341,17 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 		return nil
 	}
 
-	//Try to decode the key
-	key, err := security.DecodeKey(topic.Key)
-	if err != nil {
-		return types.ErrBadRequest
+	if !c.insecure {
+		wildcard, err := c.onSecureRequest(topic)
+		if err != nil {
+			return err
+		}
+		if wildcard {
+			return types.ErrForbidden
+		}
 	}
 
-	// Check if the key has the permission to read the topic
-	if !key.HasPermission(security.AllowWrite) {
-		return types.ErrUnauthorized
-	}
-
-	// Check if the key has the permission for the topic
-	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
-	if !ok {
-		return types.ErrUnauthorized
-	}
-
-	if wildcard {
-		return types.ErrForbidden
-	}
-
-	err = store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
+	err := store.Message.Put(c.clientid.Contract(), topic.Topic, payload)
 	if err != nil {
 		log.Error("conn.onPublish", "store message "+err.Error())
 		return types.ErrServerError
@@ -335,6 +360,26 @@ func (c *Conn) onPublish(pkt *mqtt.Publish, mqttTopic []byte, payload []byte) *t
 	c.publish(pkt, topic, payload)
 
 	return nil
+}
+
+func (c *Conn) onSecureRequest(topic *security.Topic) (bool, *types.Error) {
+	// Attempt to decode the key
+	key, err := security.DecodeKey(topic.Key)
+	if err != nil {
+		return false, types.ErrBadRequest
+	}
+
+	// Check if the key has the permission to read the topic
+	if !key.HasPermission(security.AllowRead) {
+		return false, types.ErrUnauthorized
+	}
+
+	// Check if the key has the permission for the topic
+	ok, wildcard := key.ValidateTopic(c.clientid.Contract(), topic.Topic[:topic.Size])
+	if !ok {
+		return wildcard, types.ErrUnauthorized
+	}
+	return wildcard, nil
 }
 
 // onSpecialRequest processes an special request.

@@ -12,11 +12,11 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
+	lp "github.com/unit-io/unitd/net"
 	"github.com/unit-io/unitd/net/listener"
 	rh "github.com/unit-io/unitd/pkg/hash"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
-	"github.com/unit-io/unitd/plugins/mqtt"
 )
 
 const (
@@ -84,9 +84,9 @@ type ClusterReq struct {
 	// Cluster is desynchronized.
 	Signature string
 
-	PktSub   *mqtt.Subscribe
-	PktPub   *mqtt.Publish
-	PktUnsub *mqtt.Unsubscribe
+	PktSub   *lp.Subscribe
+	PktPub   *lp.Publish
+	PktUnsub *lp.Unsubscribe
 	Topic    *security.Topic
 	Type     uint8
 	Msg      *message.Message
@@ -100,9 +100,9 @@ type ClusterReq struct {
 // ClusterResp is a Master to Proxy response message.
 type ClusterResp struct {
 	Type     uint8
-	PktSub   *mqtt.Subscribe
-	PktPub   *mqtt.Publish
-	PktUnsub *mqtt.Unsubscribe
+	PktSub   *lp.Subscribe
+	PktPub   *lp.Publish
+	PktUnsub *lp.Unsubscribe
 	Pkt      []byte
 	Topic    *security.Topic
 	Msg      *message.Message
@@ -354,7 +354,7 @@ func (c *Cluster) isRemoteContract(contract string) bool {
 }
 
 // Forward client message to the Master (cluster node which owns the topic)
-func (c *Cluster) routeToContract(pkt mqtt.Packet, topic *security.Topic, msgType uint8, msg *message.Message, conn *Conn) error {
+func (c *Cluster) routeToContract(pkt lp.Packet, topic *security.Topic, msgType uint8, msg *message.Message, conn *Conn) error {
 	// Find the cluster node which owns the topic, then forward to it.
 	n := c.nodeForContract(string(conn.clientid.Contract()))
 	if n == nil {
@@ -367,19 +367,19 @@ func (c *Cluster) routeToContract(pkt mqtt.Packet, topic *security.Topic, msgTyp
 	}
 	conn.nodes[n.name] = true
 
-	// var pktsub,pktpub,pktunsub mqtt.Packet
-	var pktsub *mqtt.Subscribe
-	var pktpub *mqtt.Publish
-	var pktunsub *mqtt.Unsubscribe
+	// var pktsub,pktpub,pktunsub lp.Packet
+	var pktsub *lp.Subscribe
+	var pktpub *lp.Publish
+	var pktunsub *lp.Unsubscribe
 	switch msgType {
 	case message.SUBSCRIBE:
-		pktsub = pkt.(*mqtt.Subscribe)
+		pktsub = pkt.(*lp.Subscribe)
 		pktsub.IsForwarded = true
 	case message.UNSUBSCRIBE:
-		pktunsub = pkt.(*mqtt.Unsubscribe)
+		pktunsub = pkt.(*lp.Unsubscribe)
 		pktunsub.IsForwarded = true
 	case message.PUBLISH:
-		pktpub = pkt.(*mqtt.Publish)
+		pktpub = pkt.(*lp.Publish)
 		pktpub.IsForwarded = true
 	}
 	return n.forward(
@@ -450,9 +450,9 @@ func ClusterInit(configString json.RawMessage, self *string) int {
 
 	gob.Register([]interface{}{})
 	gob.Register(map[string]interface{}{})
-	gob.Register(mqtt.Publish{})
-	gob.Register(mqtt.Subscribe{})
-	gob.Register(mqtt.Unsubscribe{})
+	gob.Register(lp.Publish{})
+	gob.Register(lp.Subscribe{})
+	gob.Register(lp.Unsubscribe{})
 
 	Globals.Cluster = &Cluster{
 		thisNodeName: thisName,

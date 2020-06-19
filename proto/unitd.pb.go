@@ -24,6 +24,70 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
+type MessageType int32
+
+const (
+	MessageType_RESERVED    MessageType = 0
+	MessageType_CONNECT     MessageType = 1
+	MessageType_CONNACK     MessageType = 2
+	MessageType_PUBLISH     MessageType = 3
+	MessageType_PUBACK      MessageType = 4
+	MessageType_PUBREC      MessageType = 5
+	MessageType_PUBREL      MessageType = 6
+	MessageType_PUBCOMP     MessageType = 7
+	MessageType_SUBSCRIBE   MessageType = 8
+	MessageType_SUBACK      MessageType = 9
+	MessageType_UNSUBSCRIBE MessageType = 10
+	MessageType_UNSUBACK    MessageType = 11
+	MessageType_PINGREQ     MessageType = 12
+	MessageType_PINGRESP    MessageType = 13
+	MessageType_DISCONNECT  MessageType = 14
+)
+
+var MessageType_name = map[int32]string{
+	0:  "RESERVED",
+	1:  "CONNECT",
+	2:  "CONNACK",
+	3:  "PUBLISH",
+	4:  "PUBACK",
+	5:  "PUBREC",
+	6:  "PUBREL",
+	7:  "PUBCOMP",
+	8:  "SUBSCRIBE",
+	9:  "SUBACK",
+	10: "UNSUBSCRIBE",
+	11: "UNSUBACK",
+	12: "PINGREQ",
+	13: "PINGRESP",
+	14: "DISCONNECT",
+}
+
+var MessageType_value = map[string]int32{
+	"RESERVED":    0,
+	"CONNECT":     1,
+	"CONNACK":     2,
+	"PUBLISH":     3,
+	"PUBACK":      4,
+	"PUBREC":      5,
+	"PUBREL":      6,
+	"PUBCOMP":     7,
+	"SUBSCRIBE":   8,
+	"SUBACK":      9,
+	"UNSUBSCRIBE": 10,
+	"UNSUBACK":    11,
+	"PINGREQ":     12,
+	"PINGRESP":    13,
+	"DISCONNECT":  14,
+}
+
+func (x MessageType) String() string {
+	return proto.EnumName(MessageType_name, int32(x))
+}
+
+func (MessageType) EnumDescriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{0}
+}
+
 type Empty struct {
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
@@ -55,8 +119,49 @@ func (m *Empty) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_Empty proto.InternalMessageInfo
 
+type Packet struct {
+	Data                 []byte   `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Packet) Reset()         { *m = Packet{} }
+func (m *Packet) String() string { return proto.CompactTextString(m) }
+func (*Packet) ProtoMessage()    {}
+func (*Packet) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{1}
+}
+
+func (m *Packet) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Packet.Unmarshal(m, b)
+}
+func (m *Packet) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Packet.Marshal(b, m, deterministic)
+}
+func (m *Packet) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Packet.Merge(m, src)
+}
+func (m *Packet) XXX_Size() int {
+	return xxx_messageInfo_Packet.Size(m)
+}
+func (m *Packet) XXX_DiscardUnknown() {
+	xxx_messageInfo_Packet.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Packet proto.InternalMessageInfo
+
+func (m *Packet) GetData() []byte {
+	if m != nil {
+		return m.Data
+	}
+	return nil
+}
+
 type ConnInfo struct {
 	ClientId             []byte   `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
+	Network              string   `protobuf:"bytes,2,opt,name=network,proto3" json:"network,omitempty"`
+	Address              string   `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -66,7 +171,7 @@ func (m *ConnInfo) Reset()         { *m = ConnInfo{} }
 func (m *ConnInfo) String() string { return proto.CompactTextString(m) }
 func (*ConnInfo) ProtoMessage()    {}
 func (*ConnInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{1}
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{2}
 }
 
 func (m *ConnInfo) XXX_Unmarshal(b []byte) error {
@@ -94,13 +199,25 @@ func (m *ConnInfo) GetClientId() []byte {
 	return nil
 }
 
+func (m *ConnInfo) GetNetwork() string {
+	if m != nil {
+		return m.Network
+	}
+	return ""
+}
+
+func (m *ConnInfo) GetAddress() string {
+	if m != nil {
+		return m.Address
+	}
+	return ""
+}
+
 type InMsg struct {
 	// Types that are valid to be assigned to Message:
-	//	*InMsg_Info
-	//	*InMsg_Entry
-	//	*InMsg_Query
-	//	*InMsg_Sub
+	//	*InMsg_Conn
 	//	*InMsg_Pub
+	//	*InMsg_Sub
 	Message              isInMsg_Message `protobuf_oneof:"Message"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
@@ -111,7 +228,7 @@ func (m *InMsg) Reset()         { *m = InMsg{} }
 func (m *InMsg) String() string { return proto.CompactTextString(m) }
 func (*InMsg) ProtoMessage()    {}
 func (*InMsg) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{2}
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{3}
 }
 
 func (m *InMsg) XXX_Unmarshal(b []byte) error {
@@ -136,35 +253,23 @@ type isInMsg_Message interface {
 	isInMsg_Message()
 }
 
-type InMsg_Info struct {
-	Info *ConnInfo `protobuf:"bytes,1,opt,name=info,proto3,oneof"`
-}
-
-type InMsg_Entry struct {
-	Entry *Entry `protobuf:"bytes,2,opt,name=entry,proto3,oneof"`
-}
-
-type InMsg_Query struct {
-	Query *Query `protobuf:"bytes,3,opt,name=query,proto3,oneof"`
-}
-
-type InMsg_Sub struct {
-	Sub *Sub `protobuf:"bytes,4,opt,name=sub,proto3,oneof"`
+type InMsg_Conn struct {
+	Conn *Conn `protobuf:"bytes,1,opt,name=conn,proto3,oneof"`
 }
 
 type InMsg_Pub struct {
-	Pub *Pub `protobuf:"bytes,5,opt,name=pub,proto3,oneof"`
+	Pub *Publish `protobuf:"bytes,2,opt,name=pub,proto3,oneof"`
 }
 
-func (*InMsg_Info) isInMsg_Message() {}
+type InMsg_Sub struct {
+	Sub *Subscribe `protobuf:"bytes,3,opt,name=sub,proto3,oneof"`
+}
 
-func (*InMsg_Entry) isInMsg_Message() {}
-
-func (*InMsg_Query) isInMsg_Message() {}
-
-func (*InMsg_Sub) isInMsg_Message() {}
+func (*InMsg_Conn) isInMsg_Message() {}
 
 func (*InMsg_Pub) isInMsg_Message() {}
+
+func (*InMsg_Sub) isInMsg_Message() {}
 
 func (m *InMsg) GetMessage() isInMsg_Message {
 	if m != nil {
@@ -173,37 +278,23 @@ func (m *InMsg) GetMessage() isInMsg_Message {
 	return nil
 }
 
-func (m *InMsg) GetInfo() *ConnInfo {
-	if x, ok := m.GetMessage().(*InMsg_Info); ok {
-		return x.Info
+func (m *InMsg) GetConn() *Conn {
+	if x, ok := m.GetMessage().(*InMsg_Conn); ok {
+		return x.Conn
 	}
 	return nil
 }
 
-func (m *InMsg) GetEntry() *Entry {
-	if x, ok := m.GetMessage().(*InMsg_Entry); ok {
-		return x.Entry
-	}
-	return nil
-}
-
-func (m *InMsg) GetQuery() *Query {
-	if x, ok := m.GetMessage().(*InMsg_Query); ok {
-		return x.Query
-	}
-	return nil
-}
-
-func (m *InMsg) GetSub() *Sub {
-	if x, ok := m.GetMessage().(*InMsg_Sub); ok {
-		return x.Sub
-	}
-	return nil
-}
-
-func (m *InMsg) GetPub() *Pub {
+func (m *InMsg) GetPub() *Publish {
 	if x, ok := m.GetMessage().(*InMsg_Pub); ok {
 		return x.Pub
+	}
+	return nil
+}
+
+func (m *InMsg) GetSub() *Subscribe {
+	if x, ok := m.GetMessage().(*InMsg_Sub); ok {
+		return x.Sub
 	}
 	return nil
 }
@@ -211,18 +302,17 @@ func (m *InMsg) GetPub() *Pub {
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*InMsg) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*InMsg_Info)(nil),
-		(*InMsg_Entry)(nil),
-		(*InMsg_Query)(nil),
-		(*InMsg_Sub)(nil),
+		(*InMsg_Conn)(nil),
 		(*InMsg_Pub)(nil),
+		(*InMsg_Sub)(nil),
 	}
 }
 
 type OutMsg struct {
 	// Types that are valid to be assigned to Message:
-	//	*OutMsg_Info
-	//	*OutMsg_Data
+	//	*OutMsg_Connack
+	//	*OutMsg_Puback
+	//	*OutMsg_Suback
 	Message              isOutMsg_Message `protobuf_oneof:"Message"`
 	XXX_NoUnkeyedLiteral struct{}         `json:"-"`
 	XXX_unrecognized     []byte           `json:"-"`
@@ -233,7 +323,7 @@ func (m *OutMsg) Reset()         { *m = OutMsg{} }
 func (m *OutMsg) String() string { return proto.CompactTextString(m) }
 func (*OutMsg) ProtoMessage()    {}
 func (*OutMsg) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{3}
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{4}
 }
 
 func (m *OutMsg) XXX_Unmarshal(b []byte) error {
@@ -258,17 +348,23 @@ type isOutMsg_Message interface {
 	isOutMsg_Message()
 }
 
-type OutMsg_Info struct {
-	Info *ConnInfo `protobuf:"bytes,1,opt,name=info,proto3,oneof"`
+type OutMsg_Connack struct {
+	Connack *Connack `protobuf:"bytes,1,opt,name=connack,proto3,oneof"`
 }
 
-type OutMsg_Data struct {
-	Data *Data `protobuf:"bytes,2,opt,name=data,proto3,oneof"`
+type OutMsg_Puback struct {
+	Puback *Puback `protobuf:"bytes,2,opt,name=puback,proto3,oneof"`
 }
 
-func (*OutMsg_Info) isOutMsg_Message() {}
+type OutMsg_Suback struct {
+	Suback *Suback `protobuf:"bytes,3,opt,name=suback,proto3,oneof"`
+}
 
-func (*OutMsg_Data) isOutMsg_Message() {}
+func (*OutMsg_Connack) isOutMsg_Message() {}
+
+func (*OutMsg_Puback) isOutMsg_Message() {}
+
+func (*OutMsg_Suback) isOutMsg_Message() {}
 
 func (m *OutMsg) GetMessage() isOutMsg_Message {
 	if m != nil {
@@ -277,16 +373,23 @@ func (m *OutMsg) GetMessage() isOutMsg_Message {
 	return nil
 }
 
-func (m *OutMsg) GetInfo() *ConnInfo {
-	if x, ok := m.GetMessage().(*OutMsg_Info); ok {
-		return x.Info
+func (m *OutMsg) GetConnack() *Connack {
+	if x, ok := m.GetMessage().(*OutMsg_Connack); ok {
+		return x.Connack
 	}
 	return nil
 }
 
-func (m *OutMsg) GetData() *Data {
-	if x, ok := m.GetMessage().(*OutMsg_Data); ok {
-		return x.Data
+func (m *OutMsg) GetPuback() *Puback {
+	if x, ok := m.GetMessage().(*OutMsg_Puback); ok {
+		return x.Puback
+	}
+	return nil
+}
+
+func (m *OutMsg) GetSuback() *Suback {
+	if x, ok := m.GetMessage().(*OutMsg_Suback); ok {
+		return x.Suback
 	}
 	return nil
 }
@@ -294,278 +397,882 @@ func (m *OutMsg) GetData() *Data {
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*OutMsg) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*OutMsg_Info)(nil),
-		(*OutMsg_Data)(nil),
+		(*OutMsg_Connack)(nil),
+		(*OutMsg_Puback)(nil),
+		(*OutMsg_Suback)(nil),
 	}
 }
 
-type Entry struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Payload              []byte   `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
+type FixedHeader struct {
+	MessageType          MessageType `protobuf:"varint,1,opt,name=MessageType,proto3,enum=unitd.MessageType" json:"MessageType,omitempty"`
+	Dup                  bool        `protobuf:"varint,2,opt,name=Dup,proto3" json:"Dup,omitempty"`
+	Qos                  uint32      `protobuf:"varint,3,opt,name=Qos,proto3" json:"Qos,omitempty"`
+	Retain               bool        `protobuf:"varint,4,opt,name=Retain,proto3" json:"Retain,omitempty"`
+	RemainingLength      uint32      `protobuf:"varint,5,opt,name=RemainingLength,proto3" json:"RemainingLength,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}    `json:"-"`
+	XXX_unrecognized     []byte      `json:"-"`
+	XXX_sizecache        int32       `json:"-"`
 }
 
-func (m *Entry) Reset()         { *m = Entry{} }
-func (m *Entry) String() string { return proto.CompactTextString(m) }
-func (*Entry) ProtoMessage()    {}
-func (*Entry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{4}
-}
-
-func (m *Entry) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Entry.Unmarshal(m, b)
-}
-func (m *Entry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Entry.Marshal(b, m, deterministic)
-}
-func (m *Entry) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Entry.Merge(m, src)
-}
-func (m *Entry) XXX_Size() int {
-	return xxx_messageInfo_Entry.Size(m)
-}
-func (m *Entry) XXX_DiscardUnknown() {
-	xxx_messageInfo_Entry.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_Entry proto.InternalMessageInfo
-
-func (m *Entry) GetTopic() []byte {
-	if m != nil {
-		return m.Topic
-	}
-	return nil
-}
-
-func (m *Entry) GetPayload() []byte {
-	if m != nil {
-		return m.Payload
-	}
-	return nil
-}
-
-type Query struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Limit                int32    `protobuf:"varint,2,opt,name=limit,proto3" json:"limit,omitempty"`
-	XXX_NoUnkeyedLiteral struct{} `json:"-"`
-	XXX_unrecognized     []byte   `json:"-"`
-	XXX_sizecache        int32    `json:"-"`
-}
-
-func (m *Query) Reset()         { *m = Query{} }
-func (m *Query) String() string { return proto.CompactTextString(m) }
-func (*Query) ProtoMessage()    {}
-func (*Query) Descriptor() ([]byte, []int) {
+func (m *FixedHeader) Reset()         { *m = FixedHeader{} }
+func (m *FixedHeader) String() string { return proto.CompactTextString(m) }
+func (*FixedHeader) ProtoMessage()    {}
+func (*FixedHeader) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2581e9e1a4f3b0d3, []int{5}
 }
 
-func (m *Query) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Query.Unmarshal(m, b)
+func (m *FixedHeader) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_FixedHeader.Unmarshal(m, b)
 }
-func (m *Query) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Query.Marshal(b, m, deterministic)
+func (m *FixedHeader) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_FixedHeader.Marshal(b, m, deterministic)
 }
-func (m *Query) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Query.Merge(m, src)
+func (m *FixedHeader) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FixedHeader.Merge(m, src)
 }
-func (m *Query) XXX_Size() int {
-	return xxx_messageInfo_Query.Size(m)
+func (m *FixedHeader) XXX_Size() int {
+	return xxx_messageInfo_FixedHeader.Size(m)
 }
-func (m *Query) XXX_DiscardUnknown() {
-	xxx_messageInfo_Query.DiscardUnknown(m)
+func (m *FixedHeader) XXX_DiscardUnknown() {
+	xxx_messageInfo_FixedHeader.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Query proto.InternalMessageInfo
+var xxx_messageInfo_FixedHeader proto.InternalMessageInfo
 
-func (m *Query) GetTopic() []byte {
+func (m *FixedHeader) GetMessageType() MessageType {
 	if m != nil {
-		return m.Topic
+		return m.MessageType
 	}
-	return nil
+	return MessageType_RESERVED
 }
 
-func (m *Query) GetLimit() int32 {
+func (m *FixedHeader) GetDup() bool {
 	if m != nil {
-		return m.Limit
+		return m.Dup
+	}
+	return false
+}
+
+func (m *FixedHeader) GetQos() uint32 {
+	if m != nil {
+		return m.Qos
 	}
 	return 0
 }
 
-type Sub struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
+func (m *FixedHeader) GetRetain() bool {
+	if m != nil {
+		return m.Retain
+	}
+	return false
+}
+
+func (m *FixedHeader) GetRemainingLength() uint32 {
+	if m != nil {
+		return m.RemainingLength
+	}
+	return 0
+}
+
+// Connect represents a connect packet.
+type Conn struct {
+	ProtoName            []byte   `protobuf:"bytes,1,opt,name=ProtoName,proto3" json:"ProtoName,omitempty"`
+	Version              uint32   `protobuf:"varint,2,opt,name=Version,proto3" json:"Version,omitempty"`
+	InsecureFlag         bool     `protobuf:"varint,3,opt,name=InsecureFlag,proto3" json:"InsecureFlag,omitempty"`
+	UsernameFlag         bool     `protobuf:"varint,4,opt,name=UsernameFlag,proto3" json:"UsernameFlag,omitempty"`
+	PasswordFlag         bool     `protobuf:"varint,5,opt,name=PasswordFlag,proto3" json:"PasswordFlag,omitempty"`
+	CleanSessFlag        bool     `protobuf:"varint,9,opt,name=CleanSessFlag,proto3" json:"CleanSessFlag,omitempty"`
+	KeepAlive            uint32   `protobuf:"varint,10,opt,name=KeepAlive,proto3" json:"KeepAlive,omitempty"`
+	ClientID             []byte   `protobuf:"bytes,11,opt,name=ClientID,proto3" json:"ClientID,omitempty"`
+	Username             []byte   `protobuf:"bytes,14,opt,name=Username,proto3" json:"Username,omitempty"`
+	Password             []byte   `protobuf:"bytes,15,opt,name=Password,proto3" json:"Password,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Sub) Reset()         { *m = Sub{} }
-func (m *Sub) String() string { return proto.CompactTextString(m) }
-func (*Sub) ProtoMessage()    {}
-func (*Sub) Descriptor() ([]byte, []int) {
+func (m *Conn) Reset()         { *m = Conn{} }
+func (m *Conn) String() string { return proto.CompactTextString(m) }
+func (*Conn) ProtoMessage()    {}
+func (*Conn) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2581e9e1a4f3b0d3, []int{6}
 }
 
-func (m *Sub) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Sub.Unmarshal(m, b)
+func (m *Conn) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Conn.Unmarshal(m, b)
 }
-func (m *Sub) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Sub.Marshal(b, m, deterministic)
+func (m *Conn) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Conn.Marshal(b, m, deterministic)
 }
-func (m *Sub) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Sub.Merge(m, src)
+func (m *Conn) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Conn.Merge(m, src)
 }
-func (m *Sub) XXX_Size() int {
-	return xxx_messageInfo_Sub.Size(m)
+func (m *Conn) XXX_Size() int {
+	return xxx_messageInfo_Conn.Size(m)
 }
-func (m *Sub) XXX_DiscardUnknown() {
-	xxx_messageInfo_Sub.DiscardUnknown(m)
+func (m *Conn) XXX_DiscardUnknown() {
+	xxx_messageInfo_Conn.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Sub proto.InternalMessageInfo
+var xxx_messageInfo_Conn proto.InternalMessageInfo
 
-func (m *Sub) GetTopic() []byte {
+func (m *Conn) GetProtoName() []byte {
 	if m != nil {
-		return m.Topic
+		return m.ProtoName
 	}
 	return nil
 }
 
-type Pub struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Payload              []byte   `protobuf:"bytes,2,opt,name=payload,proto3" json:"payload,omitempty"`
+func (m *Conn) GetVersion() uint32 {
+	if m != nil {
+		return m.Version
+	}
+	return 0
+}
+
+func (m *Conn) GetInsecureFlag() bool {
+	if m != nil {
+		return m.InsecureFlag
+	}
+	return false
+}
+
+func (m *Conn) GetUsernameFlag() bool {
+	if m != nil {
+		return m.UsernameFlag
+	}
+	return false
+}
+
+func (m *Conn) GetPasswordFlag() bool {
+	if m != nil {
+		return m.PasswordFlag
+	}
+	return false
+}
+
+func (m *Conn) GetCleanSessFlag() bool {
+	if m != nil {
+		return m.CleanSessFlag
+	}
+	return false
+}
+
+func (m *Conn) GetKeepAlive() uint32 {
+	if m != nil {
+		return m.KeepAlive
+	}
+	return 0
+}
+
+func (m *Conn) GetClientID() []byte {
+	if m != nil {
+		return m.ClientID
+	}
+	return nil
+}
+
+func (m *Conn) GetUsername() []byte {
+	if m != nil {
+		return m.Username
+	}
+	return nil
+}
+
+func (m *Conn) GetPassword() []byte {
+	if m != nil {
+		return m.Password
+	}
+	return nil
+}
+
+// Connack represents a connack packet.
+// 0x00 connection accepted
+// 0x01 refused: unacceptable proto version
+// 0x02 refused: identifier rejected
+// 0x03 refused server unavailiable
+// 0x04 bad user or password
+// 0x05 not authorized
+type Connack struct {
+	ReturnCode           uint32   `protobuf:"varint,1,opt,name=ReturnCode,proto3" json:"ReturnCode,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Pub) Reset()         { *m = Pub{} }
-func (m *Pub) String() string { return proto.CompactTextString(m) }
-func (*Pub) ProtoMessage()    {}
-func (*Pub) Descriptor() ([]byte, []int) {
+func (m *Connack) Reset()         { *m = Connack{} }
+func (m *Connack) String() string { return proto.CompactTextString(m) }
+func (*Connack) ProtoMessage()    {}
+func (*Connack) Descriptor() ([]byte, []int) {
 	return fileDescriptor_2581e9e1a4f3b0d3, []int{7}
 }
 
-func (m *Pub) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Pub.Unmarshal(m, b)
+func (m *Connack) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Connack.Unmarshal(m, b)
 }
-func (m *Pub) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Pub.Marshal(b, m, deterministic)
+func (m *Connack) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Connack.Marshal(b, m, deterministic)
 }
-func (m *Pub) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Pub.Merge(m, src)
+func (m *Connack) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Connack.Merge(m, src)
 }
-func (m *Pub) XXX_Size() int {
-	return xxx_messageInfo_Pub.Size(m)
+func (m *Connack) XXX_Size() int {
+	return xxx_messageInfo_Connack.Size(m)
 }
-func (m *Pub) XXX_DiscardUnknown() {
-	xxx_messageInfo_Pub.DiscardUnknown(m)
+func (m *Connack) XXX_DiscardUnknown() {
+	xxx_messageInfo_Connack.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Pub proto.InternalMessageInfo
+var xxx_messageInfo_Connack proto.InternalMessageInfo
 
-func (m *Pub) GetTopic() []byte {
+func (m *Connack) GetReturnCode() uint32 {
+	if m != nil {
+		return m.ReturnCode
+	}
+	return 0
+}
+
+//Pingreq is a keepalive
+type Pingreq struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Pingreq) Reset()         { *m = Pingreq{} }
+func (m *Pingreq) String() string { return proto.CompactTextString(m) }
+func (*Pingreq) ProtoMessage()    {}
+func (*Pingreq) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{8}
+}
+
+func (m *Pingreq) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Pingreq.Unmarshal(m, b)
+}
+func (m *Pingreq) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Pingreq.Marshal(b, m, deterministic)
+}
+func (m *Pingreq) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pingreq.Merge(m, src)
+}
+func (m *Pingreq) XXX_Size() int {
+	return xxx_messageInfo_Pingreq.Size(m)
+}
+func (m *Pingreq) XXX_DiscardUnknown() {
+	xxx_messageInfo_Pingreq.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Pingreq proto.InternalMessageInfo
+
+//Pingresp is for saying "hey, the server is alive"
+type Pingresp struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Pingresp) Reset()         { *m = Pingresp{} }
+func (m *Pingresp) String() string { return proto.CompactTextString(m) }
+func (*Pingresp) ProtoMessage()    {}
+func (*Pingresp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{9}
+}
+
+func (m *Pingresp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Pingresp.Unmarshal(m, b)
+}
+func (m *Pingresp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Pingresp.Marshal(b, m, deterministic)
+}
+func (m *Pingresp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pingresp.Merge(m, src)
+}
+func (m *Pingresp) XXX_Size() int {
+	return xxx_messageInfo_Pingresp.Size(m)
+}
+func (m *Pingresp) XXX_DiscardUnknown() {
+	xxx_messageInfo_Pingresp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Pingresp proto.InternalMessageInfo
+
+//Disconnect is to signal you want to cease communications with the server
+type Disconnect struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Disconnect) Reset()         { *m = Disconnect{} }
+func (m *Disconnect) String() string { return proto.CompactTextString(m) }
+func (*Disconnect) ProtoMessage()    {}
+func (*Disconnect) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{10}
+}
+
+func (m *Disconnect) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Disconnect.Unmarshal(m, b)
+}
+func (m *Disconnect) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Disconnect.Marshal(b, m, deterministic)
+}
+func (m *Disconnect) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Disconnect.Merge(m, src)
+}
+func (m *Disconnect) XXX_Size() int {
+	return xxx_messageInfo_Disconnect.Size(m)
+}
+func (m *Disconnect) XXX_DiscardUnknown() {
+	xxx_messageInfo_Disconnect.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Disconnect proto.InternalMessageInfo
+
+// Publish represents a publish packet.
+type Publish struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	Topic                []byte   `protobuf:"bytes,2,opt,name=Topic,proto3" json:"Topic,omitempty"`
+	Payload              []byte   `protobuf:"bytes,3,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Publish) Reset()         { *m = Publish{} }
+func (m *Publish) String() string { return proto.CompactTextString(m) }
+func (*Publish) ProtoMessage()    {}
+func (*Publish) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{11}
+}
+
+func (m *Publish) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Publish.Unmarshal(m, b)
+}
+func (m *Publish) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Publish.Marshal(b, m, deterministic)
+}
+func (m *Publish) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Publish.Merge(m, src)
+}
+func (m *Publish) XXX_Size() int {
+	return xxx_messageInfo_Publish.Size(m)
+}
+func (m *Publish) XXX_DiscardUnknown() {
+	xxx_messageInfo_Publish.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Publish proto.InternalMessageInfo
+
+func (m *Publish) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+func (m *Publish) GetTopic() []byte {
 	if m != nil {
 		return m.Topic
 	}
 	return nil
 }
 
-func (m *Pub) GetPayload() []byte {
+func (m *Publish) GetPayload() []byte {
 	if m != nil {
 		return m.Payload
 	}
 	return nil
 }
 
-type Data struct {
-	Topic                []byte   `protobuf:"bytes,1,opt,name=topic,proto3" json:"topic,omitempty"`
-	Content              []byte   `protobuf:"bytes,2,opt,name=content,proto3" json:"content,omitempty"`
+//Puback is sent for QOS level one to verify the receipt of a publish
+//Qot the spec: "A PUBACK Packet is sent by a server in response to a PUBLISH Packet from a publishing client, and by a subscriber in response to a PUBLISH Packet from the server."
+type Puback struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
 
-func (m *Data) Reset()         { *m = Data{} }
-func (m *Data) String() string { return proto.CompactTextString(m) }
-func (*Data) ProtoMessage()    {}
-func (*Data) Descriptor() ([]byte, []int) {
-	return fileDescriptor_2581e9e1a4f3b0d3, []int{8}
+func (m *Puback) Reset()         { *m = Puback{} }
+func (m *Puback) String() string { return proto.CompactTextString(m) }
+func (*Puback) ProtoMessage()    {}
+func (*Puback) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{12}
 }
 
-func (m *Data) XXX_Unmarshal(b []byte) error {
-	return xxx_messageInfo_Data.Unmarshal(m, b)
+func (m *Puback) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Puback.Unmarshal(m, b)
 }
-func (m *Data) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	return xxx_messageInfo_Data.Marshal(b, m, deterministic)
+func (m *Puback) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Puback.Marshal(b, m, deterministic)
 }
-func (m *Data) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Data.Merge(m, src)
+func (m *Puback) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Puback.Merge(m, src)
 }
-func (m *Data) XXX_Size() int {
-	return xxx_messageInfo_Data.Size(m)
+func (m *Puback) XXX_Size() int {
+	return xxx_messageInfo_Puback.Size(m)
 }
-func (m *Data) XXX_DiscardUnknown() {
-	xxx_messageInfo_Data.DiscardUnknown(m)
+func (m *Puback) XXX_DiscardUnknown() {
+	xxx_messageInfo_Puback.DiscardUnknown(m)
 }
 
-var xxx_messageInfo_Data proto.InternalMessageInfo
+var xxx_messageInfo_Puback proto.InternalMessageInfo
 
-func (m *Data) GetTopic() []byte {
+func (m *Puback) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+//Pubrec is for verifying the receipt of a publish
+//Qoth the spec:"It is the second Packet of the QoS level 2 protocol flow. A PUBREC Packet is sent by the server in response to a PUBLISH Packet from a publishing client, or by a subscriber in response to a PUBLISH Packet from the server."
+type Pubrec struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Pubrec) Reset()         { *m = Pubrec{} }
+func (m *Pubrec) String() string { return proto.CompactTextString(m) }
+func (*Pubrec) ProtoMessage()    {}
+func (*Pubrec) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{13}
+}
+
+func (m *Pubrec) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Pubrec.Unmarshal(m, b)
+}
+func (m *Pubrec) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Pubrec.Marshal(b, m, deterministic)
+}
+func (m *Pubrec) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pubrec.Merge(m, src)
+}
+func (m *Pubrec) XXX_Size() int {
+	return xxx_messageInfo_Pubrec.Size(m)
+}
+func (m *Pubrec) XXX_DiscardUnknown() {
+	xxx_messageInfo_Pubrec.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Pubrec proto.InternalMessageInfo
+
+func (m *Pubrec) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+//Pubrel is a response to pubrec from either the client or server.
+type Pubrel struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Pubrel) Reset()         { *m = Pubrel{} }
+func (m *Pubrel) String() string { return proto.CompactTextString(m) }
+func (*Pubrel) ProtoMessage()    {}
+func (*Pubrel) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{14}
+}
+
+func (m *Pubrel) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Pubrel.Unmarshal(m, b)
+}
+func (m *Pubrel) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Pubrel.Marshal(b, m, deterministic)
+}
+func (m *Pubrel) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pubrel.Merge(m, src)
+}
+func (m *Pubrel) XXX_Size() int {
+	return xxx_messageInfo_Pubrel.Size(m)
+}
+func (m *Pubrel) XXX_DiscardUnknown() {
+	xxx_messageInfo_Pubrel.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Pubrel proto.InternalMessageInfo
+
+func (m *Pubrel) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+//Pubcomp is for saying is in response to a pubrel sent by the publisher
+//the final member of the QOS2 flow. both sides have said "hey, we did it!"
+type Pubcomp struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Pubcomp) Reset()         { *m = Pubcomp{} }
+func (m *Pubcomp) String() string { return proto.CompactTextString(m) }
+func (*Pubcomp) ProtoMessage()    {}
+func (*Pubcomp) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{15}
+}
+
+func (m *Pubcomp) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Pubcomp.Unmarshal(m, b)
+}
+func (m *Pubcomp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Pubcomp.Marshal(b, m, deterministic)
+}
+func (m *Pubcomp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Pubcomp.Merge(m, src)
+}
+func (m *Pubcomp) XXX_Size() int {
+	return xxx_messageInfo_Pubcomp.Size(m)
+}
+func (m *Pubcomp) XXX_DiscardUnknown() {
+	xxx_messageInfo_Pubcomp.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Pubcomp proto.InternalMessageInfo
+
+func (m *Pubcomp) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+//Subscriber is pairing the Qos and topic together
+//for the QOS' pairs in unsubscribe and subscribe
+type Subscriber struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	Topic                []byte   `protobuf:"bytes,2,opt,name=Topic,proto3" json:"Topic,omitempty"`
+	Qos                  uint32   `protobuf:"varint,3,opt,name=Qos,proto3" json:"Qos,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Subscriber) Reset()         { *m = Subscriber{} }
+func (m *Subscriber) String() string { return proto.CompactTextString(m) }
+func (*Subscriber) ProtoMessage()    {}
+func (*Subscriber) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{16}
+}
+
+func (m *Subscriber) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Subscriber.Unmarshal(m, b)
+}
+func (m *Subscriber) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Subscriber.Marshal(b, m, deterministic)
+}
+func (m *Subscriber) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Subscriber.Merge(m, src)
+}
+func (m *Subscriber) XXX_Size() int {
+	return xxx_messageInfo_Subscriber.Size(m)
+}
+func (m *Subscriber) XXX_DiscardUnknown() {
+	xxx_messageInfo_Subscriber.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Subscriber proto.InternalMessageInfo
+
+func (m *Subscriber) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+func (m *Subscriber) GetTopic() []byte {
 	if m != nil {
 		return m.Topic
 	}
 	return nil
 }
 
-func (m *Data) GetContent() []byte {
+func (m *Subscriber) GetQos() uint32 {
 	if m != nil {
-		return m.Content
+		return m.Qos
+	}
+	return 0
+}
+
+//Subscribe tells the server which topics the client would like to subscribe to
+type Subscribe struct {
+	MessageID            uint32        `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	Subscribers          []*Subscriber `protobuf:"bytes,2,rep,name=Subscribers,proto3" json:"Subscribers,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
+}
+
+func (m *Subscribe) Reset()         { *m = Subscribe{} }
+func (m *Subscribe) String() string { return proto.CompactTextString(m) }
+func (*Subscribe) ProtoMessage()    {}
+func (*Subscribe) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{17}
+}
+
+func (m *Subscribe) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Subscribe.Unmarshal(m, b)
+}
+func (m *Subscribe) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Subscribe.Marshal(b, m, deterministic)
+}
+func (m *Subscribe) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Subscribe.Merge(m, src)
+}
+func (m *Subscribe) XXX_Size() int {
+	return xxx_messageInfo_Subscribe.Size(m)
+}
+func (m *Subscribe) XXX_DiscardUnknown() {
+	xxx_messageInfo_Subscribe.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Subscribe proto.InternalMessageInfo
+
+func (m *Subscribe) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+func (m *Subscribe) GetSubscribers() []*Subscriber {
+	if m != nil {
+		return m.Subscribers
 	}
 	return nil
 }
 
+//Suback is to say "hey, you got it buddy. I will send you messages that fit this pattern"
+type Suback struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	Qos                  []uint32 `protobuf:"varint,2,rep,packed,name=Qos,proto3" json:"Qos,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Suback) Reset()         { *m = Suback{} }
+func (m *Suback) String() string { return proto.CompactTextString(m) }
+func (*Suback) ProtoMessage()    {}
+func (*Suback) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{18}
+}
+
+func (m *Suback) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Suback.Unmarshal(m, b)
+}
+func (m *Suback) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Suback.Marshal(b, m, deterministic)
+}
+func (m *Suback) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Suback.Merge(m, src)
+}
+func (m *Suback) XXX_Size() int {
+	return xxx_messageInfo_Suback.Size(m)
+}
+func (m *Suback) XXX_DiscardUnknown() {
+	xxx_messageInfo_Suback.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Suback proto.InternalMessageInfo
+
+func (m *Suback) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+func (m *Suback) GetQos() []uint32 {
+	if m != nil {
+		return m.Qos
+	}
+	return nil
+}
+
+//Unsubscribe is the Packet to send if you don't want to subscribe to a topic anymore
+type Unsubscribe struct {
+	MessageID            uint32        `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	Subscribers          []*Subscriber `protobuf:"bytes,2,rep,name=Subscribers,proto3" json:"Subscribers,omitempty"`
+	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
+	XXX_unrecognized     []byte        `json:"-"`
+	XXX_sizecache        int32         `json:"-"`
+}
+
+func (m *Unsubscribe) Reset()         { *m = Unsubscribe{} }
+func (m *Unsubscribe) String() string { return proto.CompactTextString(m) }
+func (*Unsubscribe) ProtoMessage()    {}
+func (*Unsubscribe) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{19}
+}
+
+func (m *Unsubscribe) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Unsubscribe.Unmarshal(m, b)
+}
+func (m *Unsubscribe) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Unsubscribe.Marshal(b, m, deterministic)
+}
+func (m *Unsubscribe) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Unsubscribe.Merge(m, src)
+}
+func (m *Unsubscribe) XXX_Size() int {
+	return xxx_messageInfo_Unsubscribe.Size(m)
+}
+func (m *Unsubscribe) XXX_DiscardUnknown() {
+	xxx_messageInfo_Unsubscribe.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Unsubscribe proto.InternalMessageInfo
+
+func (m *Unsubscribe) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
+func (m *Unsubscribe) GetSubscribers() []*Subscriber {
+	if m != nil {
+		return m.Subscribers
+	}
+	return nil
+}
+
+//Unsuback is to unsubscribe as suback is to subscribe
+type Unsuback struct {
+	MessageID            uint32   `protobuf:"varint,1,opt,name=MessageID,proto3" json:"MessageID,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *Unsuback) Reset()         { *m = Unsuback{} }
+func (m *Unsuback) String() string { return proto.CompactTextString(m) }
+func (*Unsuback) ProtoMessage()    {}
+func (*Unsuback) Descriptor() ([]byte, []int) {
+	return fileDescriptor_2581e9e1a4f3b0d3, []int{20}
+}
+
+func (m *Unsuback) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_Unsuback.Unmarshal(m, b)
+}
+func (m *Unsuback) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_Unsuback.Marshal(b, m, deterministic)
+}
+func (m *Unsuback) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Unsuback.Merge(m, src)
+}
+func (m *Unsuback) XXX_Size() int {
+	return xxx_messageInfo_Unsuback.Size(m)
+}
+func (m *Unsuback) XXX_DiscardUnknown() {
+	xxx_messageInfo_Unsuback.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_Unsuback proto.InternalMessageInfo
+
+func (m *Unsuback) GetMessageID() uint32 {
+	if m != nil {
+		return m.MessageID
+	}
+	return 0
+}
+
 func init() {
+	proto.RegisterEnum("unitd.MessageType", MessageType_name, MessageType_value)
 	proto.RegisterType((*Empty)(nil), "unitd.Empty")
+	proto.RegisterType((*Packet)(nil), "unitd.Packet")
 	proto.RegisterType((*ConnInfo)(nil), "unitd.ConnInfo")
 	proto.RegisterType((*InMsg)(nil), "unitd.InMsg")
 	proto.RegisterType((*OutMsg)(nil), "unitd.OutMsg")
-	proto.RegisterType((*Entry)(nil), "unitd.Entry")
-	proto.RegisterType((*Query)(nil), "unitd.Query")
-	proto.RegisterType((*Sub)(nil), "unitd.Sub")
-	proto.RegisterType((*Pub)(nil), "unitd.Pub")
-	proto.RegisterType((*Data)(nil), "unitd.Data")
+	proto.RegisterType((*FixedHeader)(nil), "unitd.FixedHeader")
+	proto.RegisterType((*Conn)(nil), "unitd.Conn")
+	proto.RegisterType((*Connack)(nil), "unitd.Connack")
+	proto.RegisterType((*Pingreq)(nil), "unitd.Pingreq")
+	proto.RegisterType((*Pingresp)(nil), "unitd.Pingresp")
+	proto.RegisterType((*Disconnect)(nil), "unitd.Disconnect")
+	proto.RegisterType((*Publish)(nil), "unitd.Publish")
+	proto.RegisterType((*Puback)(nil), "unitd.Puback")
+	proto.RegisterType((*Pubrec)(nil), "unitd.Pubrec")
+	proto.RegisterType((*Pubrel)(nil), "unitd.Pubrel")
+	proto.RegisterType((*Pubcomp)(nil), "unitd.Pubcomp")
+	proto.RegisterType((*Subscriber)(nil), "unitd.Subscriber")
+	proto.RegisterType((*Subscribe)(nil), "unitd.Subscribe")
+	proto.RegisterType((*Suback)(nil), "unitd.Suback")
+	proto.RegisterType((*Unsubscribe)(nil), "unitd.Unsubscribe")
+	proto.RegisterType((*Unsuback)(nil), "unitd.Unsuback")
 }
 
 func init() { proto.RegisterFile("unitd.proto", fileDescriptor_2581e9e1a4f3b0d3) }
 
 var fileDescriptor_2581e9e1a4f3b0d3 = []byte{
-	// 382 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x51, 0x6b, 0xe2, 0x40,
-	0x14, 0x85, 0x93, 0x4d, 0xc6, 0xe8, 0x55, 0x58, 0x18, 0x7c, 0x08, 0x0a, 0xcb, 0xee, 0xe0, 0xb2,
-	0xc2, 0x82, 0x2c, 0xca, 0xee, 0xbe, 0xdb, 0x0a, 0xfa, 0x20, 0xb5, 0x09, 0x7d, 0x29, 0x94, 0x32,
-	0x31, 0x51, 0x02, 0x3a, 0x93, 0x26, 0x77, 0x1e, 0xf2, 0x17, 0xfa, 0xbf, 0xfa, 0xbf, 0xca, 0x4c,
-	0x62, 0xa9, 0x52, 0x5b, 0xfa, 0x78, 0xee, 0xf9, 0xce, 0x65, 0xce, 0x70, 0xa1, 0xad, 0x44, 0x8a,
-	0xf1, 0x28, 0xcb, 0x25, 0x4a, 0x4a, 0x8c, 0x60, 0x1e, 0x90, 0xd9, 0x3e, 0xc3, 0x92, 0xfd, 0x82,
-	0xe6, 0x85, 0x14, 0x62, 0x21, 0x36, 0x92, 0xf6, 0xa1, 0xb5, 0xde, 0xa5, 0x89, 0xc0, 0xfb, 0x34,
-	0xf6, 0xed, 0xef, 0xf6, 0xb0, 0x13, 0x34, 0xab, 0xc1, 0x22, 0x66, 0x4f, 0x36, 0x90, 0x85, 0x58,
-	0x16, 0x5b, 0xfa, 0x13, 0xdc, 0x54, 0x6c, 0xa4, 0x21, 0xda, 0xe3, 0xaf, 0xa3, 0x6a, 0xfd, 0x61,
-	0xcb, 0xdc, 0x0a, 0x8c, 0x4d, 0x07, 0x40, 0x12, 0x81, 0x79, 0xe9, 0x7f, 0x31, 0x5c, 0xa7, 0xe6,
-	0x66, 0x7a, 0x36, 0xb7, 0x82, 0xca, 0xd4, 0xd4, 0x83, 0x4a, 0xf2, 0xd2, 0x77, 0x8e, 0xa8, 0x6b,
-	0x3d, 0xd3, 0x94, 0x31, 0xe9, 0x37, 0x70, 0x0a, 0x15, 0xf9, 0xae, 0x61, 0xa0, 0x66, 0x42, 0x15,
-	0xcd, 0xad, 0x40, 0x1b, 0xda, 0xcf, 0x54, 0xe4, 0x93, 0x23, 0x7f, 0x55, 0xf9, 0x99, 0x8a, 0xa6,
-	0x2d, 0xf0, 0x96, 0x49, 0x51, 0xf0, 0x6d, 0xc2, 0xee, 0xa0, 0x71, 0xa5, 0xf0, 0x13, 0x3d, 0x7e,
-	0x80, 0x1b, 0x73, 0xe4, 0x75, 0x8d, 0x76, 0x8d, 0x5d, 0x72, 0xe4, 0x1a, 0xd1, 0xd6, 0xeb, 0xf5,
-	0xff, 0x81, 0x98, 0x86, 0xb4, 0x0b, 0x04, 0x65, 0x96, 0xae, 0xeb, 0x8f, 0xac, 0x04, 0xf5, 0xc1,
-	0xcb, 0x78, 0xb9, 0x93, 0x3c, 0x36, 0xfb, 0x3a, 0xc1, 0x41, 0xb2, 0x09, 0x10, 0x53, 0xfa, 0x4c,
-	0xb0, 0x0b, 0x64, 0x97, 0xee, 0x53, 0x34, 0x31, 0x12, 0x54, 0x82, 0xf5, 0xc1, 0x09, 0x55, 0xf4,
-	0x76, 0x84, 0xfd, 0x05, 0x67, 0x75, 0xce, 0x7c, 0xe7, 0x21, 0xff, 0xc0, 0xd5, 0xe5, 0xce, 0xe7,
-	0xd6, 0x52, 0x60, 0x22, 0xf0, 0x90, 0xab, 0xe5, 0xf8, 0xd1, 0x06, 0x72, 0xa3, 0xff, 0x86, 0xfe,
-	0x06, 0x12, 0x22, 0xcf, 0x91, 0x9e, 0xfe, 0x69, 0xef, 0x74, 0xc0, 0x2c, 0x3a, 0x82, 0x46, 0x88,
-	0x79, 0xc2, 0xf7, 0x1f, 0xd3, 0x43, 0xfb, 0x8f, 0x4d, 0x07, 0xe0, 0x86, 0x28, 0x33, 0xfa, 0x72,
-	0x4f, 0xfa, 0x8c, 0x7b, 0x47, 0x8a, 0x59, 0x53, 0xef, 0xb6, 0x3a, 0xf4, 0xa8, 0x61, 0xce, 0x7e,
-	0xf2, 0x1c, 0x00, 0x00, 0xff, 0xff, 0x9a, 0x56, 0x10, 0xc3, 0x05, 0x03, 0x00, 0x00,
+	// 887 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x55, 0xdb, 0x8e, 0xe3, 0x34,
+	0x18, 0x6e, 0xa6, 0x6d, 0xd2, 0xfe, 0x69, 0x3b, 0xc1, 0x42, 0x28, 0x1a, 0x56, 0x68, 0xb1, 0x46,
+	0x6c, 0x19, 0xa4, 0x15, 0xea, 0x72, 0xc1, 0xed, 0x36, 0xed, 0xd2, 0x6a, 0x67, 0x3a, 0x59, 0x67,
+	0xba, 0x48, 0x20, 0x01, 0x6e, 0x62, 0xba, 0xd1, 0xb4, 0x4e, 0x88, 0x13, 0x96, 0xb9, 0xe2, 0x8e,
+	0x7b, 0x1e, 0x83, 0xd7, 0xe0, 0x29, 0x78, 0x1c, 0xe4, 0x43, 0x7a, 0x18, 0x24, 0x66, 0x85, 0xc4,
+	0x9d, 0xbf, 0x43, 0x7e, 0x7f, 0xb6, 0x7f, 0xc7, 0xe0, 0x56, 0x3c, 0x2d, 0x93, 0xa7, 0x79, 0x91,
+	0x95, 0x19, 0x6a, 0x2b, 0x80, 0x1d, 0x68, 0x4f, 0xb7, 0x79, 0x79, 0x87, 0x1f, 0x81, 0x1d, 0xd2,
+	0xf8, 0x96, 0x95, 0x08, 0x41, 0x2b, 0xa1, 0x25, 0xf5, 0xad, 0xc7, 0xd6, 0xb0, 0x47, 0xd4, 0x18,
+	0x7f, 0x0b, 0x9d, 0x20, 0xe3, 0x7c, 0xce, 0x7f, 0xcc, 0xd0, 0x87, 0xd0, 0x8d, 0x37, 0x29, 0xe3,
+	0xe5, 0xf7, 0x69, 0x62, 0x4c, 0x1d, 0x4d, 0xcc, 0x13, 0xe4, 0x83, 0xc3, 0x59, 0xf9, 0x36, 0x2b,
+	0x6e, 0xfd, 0x93, 0xc7, 0xd6, 0xb0, 0x4b, 0x6a, 0x28, 0x15, 0x9a, 0x24, 0x05, 0x13, 0xc2, 0x6f,
+	0x6a, 0xc5, 0x40, 0xfc, 0x2b, 0xb4, 0xe7, 0xfc, 0x4a, 0xac, 0xd1, 0xc7, 0xd0, 0x8a, 0x33, 0xce,
+	0x55, 0x51, 0x77, 0xe4, 0x3e, 0xd5, 0x79, 0xe5, 0xc4, 0xb3, 0x06, 0x51, 0x12, 0xc2, 0xd0, 0xcc,
+	0xab, 0x95, 0xaa, 0xed, 0x8e, 0x06, 0xc6, 0x11, 0x56, 0xab, 0x4d, 0x2a, 0xde, 0xcc, 0x1a, 0x44,
+	0x8a, 0xe8, 0x1c, 0x9a, 0xa2, 0x5a, 0xa9, 0x59, 0xdc, 0x91, 0x67, 0x3c, 0x51, 0xb5, 0x12, 0x71,
+	0x91, 0xae, 0x98, 0x74, 0x89, 0x6a, 0x35, 0xee, 0x82, 0x73, 0xc5, 0x84, 0xa0, 0x6b, 0x86, 0x7f,
+	0xb7, 0xc0, 0xbe, 0xae, 0x4a, 0x19, 0xe1, 0x02, 0x1c, 0x39, 0x0f, 0x8d, 0x6f, 0x4d, 0x8a, 0xc1,
+	0x41, 0x0a, 0x1a, 0xdf, 0xce, 0x1a, 0xa4, 0x36, 0xa0, 0x27, 0x60, 0xe7, 0xd5, 0x4a, 0x5a, 0x75,
+	0x9c, 0xfe, 0x3e, 0x8e, 0x76, 0x1a, 0x59, 0x1a, 0x85, 0x36, 0x36, 0x8f, 0x8c, 0xd1, 0xce, 0xa8,
+	0xe5, 0xc3, 0x4c, 0x7f, 0x58, 0xe0, 0xbe, 0x48, 0x7f, 0x61, 0xc9, 0x8c, 0xd1, 0x84, 0x15, 0xe8,
+	0x0b, 0x70, 0x8d, 0x74, 0x73, 0x97, 0x33, 0x15, 0x6e, 0x30, 0x42, 0xa6, 0xd0, 0x81, 0x42, 0x0e,
+	0x6d, 0xc8, 0x83, 0xe6, 0xa4, 0xca, 0x55, 0xbe, 0x0e, 0x91, 0x43, 0xc9, 0xbc, 0xca, 0xf4, 0x11,
+	0xf4, 0x89, 0x1c, 0xa2, 0x0f, 0xc0, 0x26, 0xac, 0xa4, 0x29, 0xf7, 0x5b, 0xca, 0x66, 0x10, 0x1a,
+	0xc2, 0x29, 0x61, 0x5b, 0x9a, 0xf2, 0x94, 0xaf, 0x2f, 0x19, 0x5f, 0x97, 0x6f, 0xfc, 0xb6, 0xfa,
+	0xea, 0x3e, 0x8d, 0xff, 0x3c, 0x81, 0x96, 0xdc, 0x1f, 0xf4, 0x08, 0xba, 0xa1, 0xec, 0xae, 0x05,
+	0xdd, 0x32, 0xd3, 0x1a, 0x7b, 0x42, 0x76, 0xc0, 0x6b, 0x56, 0x88, 0x34, 0xe3, 0x2a, 0x50, 0x9f,
+	0xd4, 0x10, 0x61, 0xe8, 0xcd, 0xb9, 0x60, 0x71, 0x55, 0xb0, 0x17, 0x1b, 0xba, 0x56, 0xe9, 0x3a,
+	0xe4, 0x88, 0x93, 0x9e, 0xa5, 0x60, 0x05, 0xa7, 0x5b, 0xed, 0xd1, 0x61, 0x8f, 0x38, 0xe9, 0x09,
+	0xa9, 0x10, 0x6f, 0xb3, 0x22, 0x51, 0x9e, 0xb6, 0xf6, 0x1c, 0x72, 0xe8, 0x1c, 0xfa, 0xc1, 0x86,
+	0x51, 0x1e, 0x31, 0x21, 0x94, 0xa9, 0xab, 0x4c, 0xc7, 0xa4, 0x5c, 0xc9, 0x4b, 0xc6, 0xf2, 0xe7,
+	0x9b, 0xf4, 0x67, 0xe6, 0x83, 0x4a, 0xbb, 0x27, 0xd0, 0x19, 0x74, 0x02, 0xdd, 0xf1, 0x13, 0xdf,
+	0xd5, 0x37, 0xa0, 0xc6, 0x52, 0xab, 0x33, 0xf9, 0x03, 0xad, 0xd5, 0x58, 0x6a, 0x75, 0x16, 0xff,
+	0x54, 0x6b, 0x35, 0xc6, 0x9f, 0x82, 0x63, 0x7a, 0x0c, 0x7d, 0x04, 0x40, 0x58, 0x59, 0x15, 0x3c,
+	0xc8, 0x12, 0xbd, 0x8f, 0x7d, 0x72, 0xc0, 0xe0, 0x2e, 0x38, 0x61, 0xca, 0xd7, 0x05, 0xfb, 0x09,
+	0x03, 0x74, 0xf4, 0x50, 0xe4, 0xb8, 0x07, 0x30, 0x49, 0x85, 0xec, 0x4e, 0x16, 0x97, 0xf8, 0x6b,
+	0x70, 0xcc, 0xbd, 0x90, 0x8b, 0x31, 0x4d, 0x31, 0x9f, 0x98, 0x72, 0x7b, 0x02, 0xbd, 0x0f, 0xed,
+	0x9b, 0x2c, 0x4f, 0x63, 0x75, 0x28, 0x3d, 0xa2, 0x81, 0x3c, 0xac, 0x90, 0xde, 0x6d, 0x32, 0x9a,
+	0xa8, 0xd3, 0xe8, 0x91, 0x1a, 0xe2, 0x4f, 0xc0, 0xd6, 0x1d, 0xfe, 0xef, 0x75, 0x8d, 0xaf, 0x60,
+	0xf1, 0x3b, 0xfa, 0x36, 0x0f, 0xf8, 0x9e, 0xa8, 0x05, 0xc5, 0xd9, 0x36, 0x7f, 0xc0, 0x48, 0x00,
+	0x76, 0xb7, 0xbd, 0xf8, 0x4f, 0x8b, 0xff, 0xc7, 0x25, 0xc1, 0xdf, 0x41, 0x77, 0x57, 0xf3, 0x81,
+	0x92, 0xcf, 0xc0, 0xdd, 0x4f, 0x2f, 0xfc, 0x93, 0xc7, 0xcd, 0xa1, 0x3b, 0x7a, 0xef, 0xfe, 0x6f,
+	0xa8, 0x20, 0x87, 0x2e, 0xfc, 0x25, 0xd8, 0xd1, 0x3b, 0x6c, 0x6a, 0x9d, 0x4c, 0x16, 0x35, 0xc9,
+	0x7e, 0x00, 0x77, 0xc9, 0xc5, 0xff, 0x99, 0x6d, 0x08, 0x1d, 0x35, 0xc3, 0x83, 0xe9, 0x2e, 0xfe,
+	0xb2, 0x8e, 0xfe, 0x52, 0xa8, 0x07, 0x1d, 0x32, 0x8d, 0xa6, 0xe4, 0xf5, 0x74, 0xe2, 0x35, 0x90,
+	0x0b, 0x4e, 0x70, 0xbd, 0x58, 0x4c, 0x83, 0x1b, 0xcf, 0xaa, 0xc1, 0xf3, 0xe0, 0xa5, 0x77, 0x22,
+	0x41, 0xb8, 0x1c, 0x5f, 0xce, 0xa3, 0x99, 0xd7, 0x44, 0x00, 0x76, 0xb8, 0x1c, 0x4b, 0xa1, 0x65,
+	0xc6, 0x64, 0x1a, 0x78, 0xed, 0xdd, 0xf8, 0xd2, 0xb3, 0xcd, 0x07, 0xc1, 0xf5, 0x55, 0xe8, 0x39,
+	0xa8, 0x0f, 0xdd, 0x68, 0x39, 0x8e, 0x02, 0x32, 0x1f, 0x4f, 0xbd, 0x8e, 0xf4, 0x45, 0xfa, 0xfb,
+	0x2e, 0x3a, 0x05, 0x77, 0xb9, 0xd8, 0x8b, 0x20, 0x13, 0x29, 0x42, 0xca, 0xae, 0x2a, 0x33, 0x5f,
+	0x7c, 0x45, 0xa6, 0xaf, 0xbc, 0x9e, 0x94, 0x34, 0x88, 0x42, 0xaf, 0x8f, 0x06, 0x00, 0x93, 0x79,
+	0x54, 0xe7, 0x1d, 0x8c, 0x7e, 0xb3, 0xa0, 0xbd, 0x94, 0xdb, 0x84, 0x3e, 0x83, 0x76, 0x54, 0xd2,
+	0xa2, 0x44, 0xa7, 0x07, 0x4f, 0x83, 0x7c, 0x19, 0xcf, 0xee, 0x13, 0xb8, 0x81, 0x2e, 0xc0, 0x8e,
+	0xca, 0x82, 0xd1, 0x2d, 0xda, 0xbd, 0x0e, 0xea, 0x95, 0x3d, 0x3b, 0x86, 0x43, 0xeb, 0x73, 0x0b,
+	0x9d, 0x43, 0x2b, 0x2a, 0xb3, 0x1c, 0xf5, 0x8c, 0xa4, 0x1e, 0xe6, 0xb3, 0x23, 0x84, 0x1b, 0x63,
+	0xe7, 0x1b, 0xfd, 0x74, 0xaf, 0x6c, 0xf5, 0x90, 0x3f, 0xfb, 0x3b, 0x00, 0x00, 0xff, 0xff, 0xb0,
+	0x20, 0x8e, 0xdc, 0xd7, 0x07, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -612,8 +1319,8 @@ func (c *unitdClient) Stream(ctx context.Context, opts ...grpc.CallOption) (Unit
 }
 
 type Unitd_StreamClient interface {
-	Send(*ConnInfo) error
-	Recv() (*ConnInfo, error)
+	Send(*Packet) error
+	Recv() (*Packet, error)
 	grpc.ClientStream
 }
 
@@ -621,12 +1328,12 @@ type unitdStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *unitdStreamClient) Send(m *ConnInfo) error {
+func (x *unitdStreamClient) Send(m *Packet) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *unitdStreamClient) Recv() (*ConnInfo, error) {
-	m := new(ConnInfo)
+func (x *unitdStreamClient) Recv() (*Packet, error) {
+	m := new(Packet)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -690,8 +1397,8 @@ func _Unitd_Stream_Handler(srv interface{}, stream grpc.ServerStream) error {
 }
 
 type Unitd_StreamServer interface {
-	Send(*ConnInfo) error
-	Recv() (*ConnInfo, error)
+	Send(*Packet) error
+	Recv() (*Packet, error)
 	grpc.ServerStream
 }
 
@@ -699,12 +1406,12 @@ type unitdStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *unitdStreamServer) Send(m *ConnInfo) error {
+func (x *unitdStreamServer) Send(m *Packet) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *unitdStreamServer) Recv() (*ConnInfo, error) {
-	m := new(ConnInfo)
+func (x *unitdStreamServer) Recv() (*Packet, error) {
+	m := new(Packet)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
 	}

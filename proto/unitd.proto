@@ -6,7 +6,7 @@ option go_package='unitd';
 
 service Unitd {
 rpc Start (ConnInfo) returns (ConnInfo){}
-rpc Stream (stream ConnInfo) returns (stream ConnInfo);
+rpc Stream (stream Packet) returns (stream Packet);
 
 rpc Stop (Empty) returns (Empty){}
 }
@@ -14,49 +14,152 @@ rpc Stop (Empty) returns (Empty){}
 message Empty {
 }
 
+message Packet {
+bytes data=1;
+}
+
 message ConnInfo {
 bytes client_id=1;
-//string network=2;
-//string address=3;
+string network=2;
+string address=3;
 }
 
 message InMsg {
 	oneof Message {
-		ConnInfo  info = 1;
-		Entry entry=2;
-		Query query = 3;
-		Sub sub = 4;
-		Pub pub = 5;
+		Conn conn = 1;
+		Publish pub=2;
+		Subscribe sub=3;
 	}
 }
 
 message OutMsg {
 	oneof Message {
-		ConnInfo info=1;
-		Data data = 2;
+		Connack connack=1;
+		Puback puback=2;
+		Suback suback=3;
 	}
 }
 
-message Entry {
-bytes topic=1;
-bytes payload=2;
+enum MessageType {
+	RESERVED  = 0;
+	CONNECT=1;
+	CONNACK=2;
+	PUBLISH=3;
+	PUBACK=4;
+	PUBREC=5;
+	PUBREL=6;
+	PUBCOMP=7;
+	SUBSCRIBE=8;
+	SUBACK=9;
+	UNSUBSCRIBE=10;
+	UNSUBACK=11;
+	PINGREQ=12;
+	PINGRESP=13;
+	DISCONNECT=14;
 }
 
-message Query {
-bytes topic=1;
-int32 limit=2;
+message FixedHeader {
+	MessageType MessageType = 1;
+	bool Dup=2;
+	uint32 Qos=3;
+	bool Retain=4;
+	uint32 RemainingLength=5;
 }
 
-message Sub {
-bytes topic=1;
+// Connect represents a connect packet.
+message Conn {
+	bytes ProtoName=1;
+	uint32 Version=2;
+	bool InsecureFlag=3;
+	bool UsernameFlag=4;
+	bool PasswordFlag=5;
+	bool CleanSessFlag=9;
+	uint32 KeepAlive=10;
+	bytes ClientID=11;
+	bytes Username=14;
+	bytes Password=15;
 }
 
-message Pub {
-bytes topic=1;
-bytes payload=2;
+// Connack represents a connack packet.
+// 0x00 connection accepted
+// 0x01 refused: unacceptable proto version
+// 0x02 refused: identifier rejected
+// 0x03 refused server unavailiable
+// 0x04 bad user or password
+// 0x05 not authorized
+message Connack {
+	uint32 ReturnCode=1;
 }
 
-message Data {
-bytes topic=1;
-bytes content=2;
+//Pingreq is a keepalive
+message Pingreq {
+}
+
+//Pingresp is for saying "hey, the server is alive"
+message Pingresp {
+}
+
+//Disconnect is to signal you want to cease communications with the server
+message Disconnect {
+}
+
+// Publish represents a publish packet.
+message Publish {
+	uint32 MessageID=1;
+	bytes Topic=2;
+	bytes Payload=3;
+}
+
+//Puback is sent for QOS level one to verify the receipt of a publish
+//Qot the spec: "A PUBACK Packet is sent by a server in response to a PUBLISH Packet from a publishing client, and by a subscriber in response to a PUBLISH Packet from the server."
+message Puback {
+	uint32 MessageID=1;
+}
+
+//Pubrec is for verifying the receipt of a publish
+//Qoth the spec:"It is the second Packet of the QoS level 2 protocol flow. A PUBREC Packet is sent by the server in response to a PUBLISH Packet from a publishing client, or by a subscriber in response to a PUBLISH Packet from the server."
+message Pubrec {
+	uint32 MessageID=1;
+}
+
+//Pubrel is a response to pubrec from either the client or server.
+message Pubrel {
+	uint32 MessageID=1;
+}
+
+//Pubcomp is for saying is in response to a pubrel sent by the publisher
+//the final member of the QOS2 flow. both sides have said "hey, we did it!"
+message Pubcomp {
+	uint32 MessageID=1;
+}
+
+//Subscriber is pairing the Qos and topic together
+//for the QOS' pairs in unsubscribe and subscribe
+message Subscriber {
+uint32 MessageID=1;
+	bytes Topic=2;
+	uint32 Qos=3;
+}
+
+//Subscribe tells the server which topics the client would like to subscribe to
+message Subscribe {
+	uint32 MessageID=1;
+	repeated Subscriber Subscribers=2;
+}
+
+//Suback is to say "hey, you got it buddy. I will send you messages that fit this pattern"
+message Suback {
+	uint32 MessageID=1;
+	repeated uint32 Qos=2;
+}
+
+//Unsubscribe is the Packet to send if you don't want to subscribe to a topic anymore
+message Unsubscribe {
+	uint32 MessageID=1;
+	repeated Subscriber Subscribers=2;
+}
+
+//Unsuback is to unsubscribe as suback is to subscribe
+message Unsuback {
+	uint32 MessageID=1;
 }

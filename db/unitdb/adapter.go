@@ -55,7 +55,7 @@ func (a *adapter) Open(jsonconfig string) error {
 	}
 
 	// Attempt to open the database
-	a.db, err = unitdb.Open(config.Dir+"/"+defaultDatabase, nil, nil)
+	a.db, err = unitdb.Open(config.Dir+"/"+defaultDatabase, nil, unitdb.WithMutable())
 	if err != nil {
 		log.Error("adapter.Open", "Unable to open db")
 		return err

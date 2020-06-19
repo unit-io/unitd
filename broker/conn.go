@@ -10,9 +10,11 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
+	lp "github.com/unit-io/unitd/net"
+	"github.com/unit-io/unitd/net/grpc"
+	"github.com/unit-io/unitd/net/mqtt"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
-	"github.com/unit-io/unitd/plugins/mqtt"
 	"github.com/unit-io/unitd/store"
 	"github.com/unit-io/unitd/types"
 )
@@ -21,12 +23,13 @@ type Conn struct {
 	sync.Mutex
 	tracked uint32 // Whether the connection was already tracked or not.
 	// protocol - NONE (unset), RPC, GRPC, WEBSOCK, CLUSTER
-	proto    types.Proto
+	proto    lp.Proto
 	socket   net.Conn
 	send     chan []byte
 	stop     chan interface{}
-	username string         // The username provided by the client during MQTT connect.
-	clientid uid.ID         // The clientid provided by client during MQTT connect or new Id assigned.
+	insecure bool           // The insecure flag provided by client will not perform key validation and permissions check on the topic.
+	username string         // The username provided by the client during connect.
+	clientid uid.ID         // The clientid provided by client during connect or new Id assigned.
 	connid   uid.LID        // The locally unique id of the connection.
 	service  *Service       // The service for this connection.
 	subs     *message.Stats // The subscriptions for this connection.
@@ -34,9 +37,13 @@ type Conn struct {
 	clnode *ClusterNode
 	// Cluster nodes to inform when disconnected
 	nodes map[string]bool
+
+	// Close.
+	closeW sync.WaitGroup
+	closeC chan struct{}
 }
 
-func (s *Service) newConn(t net.Conn, proto types.Proto) *Conn {
+func (s *Service) newConn(t net.Conn, proto lp.Proto) *Conn {
 	c := &Conn{
 		proto:   proto,
 		socket:  t,
@@ -45,6 +52,8 @@ func (s *Service) newConn(t net.Conn, proto types.Proto) *Conn {
 		connid:  uid.NewLID(),
 		service: s,
 		subs:    message.NewStats(),
+		// Close
+		closeC: make(chan struct{}),
 	}
 
 	// Increment the connection counter
@@ -82,24 +91,28 @@ func (c *Conn) Type() message.SubscriberType {
 }
 
 // Send forwards the message to the underlying client.
-func (c *Conn) SendMessage(m *message.Message) bool {
-	packet := mqtt.Publish{
-		Header: &mqtt.FixedHeader{
+func (c *Conn) SendMessage(m *message.Message) error {
+	if c.proto == lp.GRPC {
+		packet := grpc.Publish{
+			MessageID: 0, // TODO
+			Topic:     m.Topic,
+			Payload:   m.Payload,
+		}
+		_, err := packet.WriteTo(c.socket)
+		return err
+	}
+
+	packet := lp.Publish{
+		FixedHeader: lp.FixedHeader{
 			QOS: 0, // TODO when we'll support more QoS
 		},
 		MessageID: 0,         // TODO
 		Topic:     m.Topic,   // The topic for this message.
 		Payload:   m.Payload, // The payload for this message.
 	}
-
-	// Acknowledge the publication
-	select {
-	case c.send <- packet.Encode():
-	case <-time.After(time.Microsecond * 50):
-		return false
-	}
-
-	return true
+	p := mqtt.Publish(packet)
+	_, err := p.WriteTo(c.socket)
+	return err
 }
 
 // Send forwards raw bytes to the underlying client.
@@ -107,6 +120,8 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 	if c == nil {
 		return true
 	}
+	c.closeW.Add(1)
+	defer c.closeW.Done()
 
 	select {
 	case c.send <- buf:
@@ -118,13 +133,13 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 }
 
 func (c *Conn) writeLoop() {
-	defer func() {
-		// Break readLoop.
-		c.close()
-	}()
+	c.closeW.Add(1)
+	defer c.closeW.Done()
 
 	for {
 		select {
+		case <-c.closeC:
+			return
 		case msg, ok := <-c.send:
 			if !ok {
 				// Channel closed.
@@ -136,7 +151,7 @@ func (c *Conn) writeLoop() {
 }
 
 // Subscribe subscribes to a particular topic.
-func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error) {
+func (c *Conn) subscribe(pkt lp.Subscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -167,7 +182,7 @@ func (c *Conn) subscribe(pkt *mqtt.Subscribe, topic *security.Topic) (err error)
 }
 
 // Unsubscribe unsubscribes this client from a particular topic.
-func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err error) {
+func (c *Conn) unsubscribe(pkt lp.Unsubscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -193,7 +208,7 @@ func (c *Conn) unsubscribe(pkt *mqtt.Unsubscribe, topic *security.Topic) (err er
 }
 
 // Publish publishes a message to everyone and returns the number of outgoing bytes written.
-func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte) (err error) {
+func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (err error) {
 	c.service.meter.InMsgs.Inc(1)
 	c.service.meter.InBytes.Inc(int64(len(payload)))
 	// subsciption count
@@ -210,8 +225,8 @@ func (c *Conn) publish(pkt *mqtt.Publish, topic *security.Topic, payload []byte)
 	for _, connid := range conns {
 		sub := Globals.ConnCache.Get(connid)
 		if sub != nil {
-			if !sub.SendMessage(m) {
-				log.Error("conn.publish", "publish timeout")
+			if err := sub.SendMessage(m); err != nil {
+				log.ErrLogger.Err(err).Str("context", "conn.publish")
 			}
 			scount++
 		}
@@ -257,7 +272,10 @@ func (c *Conn) close() error {
 	if r := recover(); r != nil {
 		defer log.ErrLogger.Debug().Str("context", "conn.closing").Msgf("panic recovered '%v'", debug.Stack())
 	}
-
+	defer c.socket.Close()
+	// Signal all goroutines.
+	close(c.closeC)
+	c.closeW.Wait()
 	// Unsubscribe from everything, no need to lock since each Unsubscribe is
 	// already locked. Locking the 'Close()' would result in a deadlock.
 	// Don't close clustered connection, their servers are not being shut down.
@@ -272,7 +290,8 @@ func (c *Conn) close() error {
 	Globals.ConnCache.Delete(c.connid)
 	defer log.ConnLogger.Info().Str("context", "conn.close").Int64("connid", int64(c.connid)).Msg("conn closed")
 	Globals.Cluster.connGone(c)
+	close(c.send)
 	// Decrement the connection counter
 	c.service.meter.Connections.Dec(1)
-	return c.socket.Close()
+	return nil
 }

@@ -1,16 +1,25 @@
 # unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd)
 
-<p align="left">
-  <img src="unitd.png" width="300" alt="Unitd" title="Unitd: Blazing Fast and Secure Messaging Broker"> 
-</p>
+## Unitd is a real-time messaging service for IoT connected devices, it supports pubsub using GRPC client or MQTT client over tcp or websocket. 
 
-# unitd: Blazing Fast and Secure Messaging Broker
-
-## unitd is an open source messaging broker for IoT and other real-time messaging service. Unitd messaging API is built for speed and security.
-
-Unitd is a real-time messaging service for IoT connected devices, it is based on MQTT protocol. Unitd is blazing fast and secure messaging infrastructure and APIs for IoT, gaming, apps and real-time web.
+Unitd is blazing fast and secure messaging infrastructure and APIs for IoT, gaming, apps and real-time web.
 
 Unitd can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Unitd is perfect for the internet of things and internet connected devices.
+
+# About unitdb 
+
+## Key characteristics
+- 100% Go
+- Optimized for fast pubsub
+- Supports message encryption
+- Supports time-to-live on message
+- Supports subscribing to wildcard topics
+
+## Unitd Clients
+To run unitdb as daemon service start [unitd](https://github.com/unit-io/unitd) application and copy unitd.conf to the path unitd binary is placed. Unitd supports pubsub using GRPC client or MQTT client to connect to service using tcp or websocket.
+- [unitd-go](https://github.com/unit-io/unitd-go) is Go client to pubsub messages using GRPC application
+- [unitd-ws](https://github.com/unit-io/unitd-ws) is javascript client to pubsub messages using MQTT over websocket 
+
 
 ## Quick Start
 To build Unitd from source code use go get command and copy [unitd.conf](https://github.com/unit-io/unitd/tree/master/unitd.conf) to the path unitd binary is placed.
@@ -18,27 +27,7 @@ To build Unitd from source code use go get command and copy [unitd.conf](https:/
 > go get -u github.com/unit-io/unitd && unitd
 
 ## Usage
-The unitd supports publish/subscribe to topic. You need to register a client id to connect to the unitd broker and generate keys for topic to publish or subscribe to topics. See [usage guide](https://github.com/unit-io/unitd/tree/master/docs/usage/usage.md). 
-
-## Example Web Application
-Open [unitd.html](https://github.com/unit-io/unitd/blob/master/examples/html/unitd.html) under example/html folder in a browser.
-
-## Steps
-- Generate Client ID
-- Specify new client ID and connect to client. On connect it subscribes to topic if topic has a valid key.
-- Specify topics to subscribe/publish messages and generate key
-- Specify key to the topics with separator '/' and subscribe to topic
-- Specify message to send and publish to topic
-
-### First Client
-<p align="left">
-  <img src="docs/img/client1.png" /> 
-</p>
-
-### Second Client
-<p align="left">
-  <img src="docs/img/client2.png" /> 
-</p>
+The unitd supports publish/subscribe to topic. You need to register a client id to connect to the unitd daemon service and generate keys for topic in order to publish or subscribe to topics. See [usage guide](https://github.com/unit-io/unitd/tree/master/docs/usage/usage.md). 
 
 ## Contributing
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.

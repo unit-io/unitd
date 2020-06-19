@@ -1,4 +1,4 @@
-package plugins
+package grpc
 
 import (
 	"github.com/golang/protobuf/proto"
@@ -22,17 +22,17 @@ type Encoder func(proto.Message, []byte) (int, error)
 // read.
 type Decoder func(m proto.Message, offset int, p []byte) ([]byte, error)
 
-// SimpleEncoder is the easiest way to generate an Encoder for a proto.Message.
+// Encode is the easiest way to generate an Encoder for a proto.Message.
 // You just give it a callback that gets the pointer to the byte slice field
 // and a valid encoder will be generated.
 //
 // Example: given a structure that has a field "Data []byte", you could:
 //
-//     SimpleEncoder(func(msg proto.Message) *[]byte {
-//         return &msg.(*MyStruct).Data
+//     Encode(func(msg proto.Message) *[]byte {
+//         return &msg.(*pbx.Packet).Data
 //     })
 //
-func SimpleEncoder(f func(proto.Message) *[]byte) Encoder {
+func Encode(f func(proto.Message) *[]byte) Encoder {
 	return func(msg proto.Message, p []byte) (int, error) {
 		bytePtr := f(msg)
 		*bytePtr = p
@@ -43,7 +43,7 @@ func SimpleEncoder(f func(proto.Message) *[]byte) Encoder {
 // SimpleDecoder is the easiest way to generate a Decoder for a proto.Message.
 // Provide a callback that gets the pointer to the byte slice field and a
 // valid decoder will be generated.
-func SimpleDecoder(f func(proto.Message) *[]byte) Decoder {
+func Decode(f func(proto.Message) *[]byte) Decoder {
 	return func(msg proto.Message, offset int, p []byte) ([]byte, error) {
 		bytePtr := f(msg)
 		copy(p, (*bytePtr)[offset:])

@@ -1,4 +1,4 @@
-package websocket
+package net
 
 import (
 	"io"
@@ -29,8 +29,6 @@ type session struct {
 }
 
 const (
-	MaxMessageSize = 1 << 19
-
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
 
