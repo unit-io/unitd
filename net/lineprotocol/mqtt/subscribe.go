@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"io"
 
-	lp "github.com/unit-io/unitd/net"
+	lp "github.com/unit-io/unitd/net/lineprotocol"
 )
 
 type (

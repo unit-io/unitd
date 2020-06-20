@@ -1,7 +1,8 @@
-package net
+package lineprotocol
 
 import (
 	"io"
+	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -9,6 +10,19 @@ import (
 
 	"github.com/gorilla/websocket"
 )
+
+type HttpServer server
+
+func NewHttpServer(opts ...Options) *HttpServer {
+	srv := &HttpServer{
+		opts: new(options),
+	}
+	WithDefaultOptions().set(srv.opts)
+	for _, opt := range opts {
+		opt.set(srv.opts)
+	}
+	return srv
+}
 
 type websocketConn interface {
 	NextReader() (messageType int, r io.Reader, err error)
@@ -48,24 +62,62 @@ var upgrader = websocket.Upgrader{
 	Subprotocols:    []string{"mqttv3.1", "mqttv3", "mqtt"},
 }
 
-func Handler(w http.ResponseWriter, r *http.Request) (net.Conn, bool) {
+func (s *HttpServer) HandleFunc(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
 
 	}
-	ws, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return nil, false
-	}
+	var tempDelay time.Duration // how long to sleep on accept failure
+	for {
+		ws, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			select {
+			case <-signalHandler():
+				return
+			default:
+			}
 
-	ws.SetReadLimit(MaxMessageSize)
-	ws.SetReadDeadline(time.Now().Add(pongWait))
-	ws.SetPongHandler(func(string) error {
+			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
+				if tempDelay == 0 {
+					tempDelay = 5 * time.Millisecond
+				} else {
+					tempDelay *= 2
+				}
+				if max := 1 * time.Second; tempDelay > max {
+					tempDelay = max
+				}
+
+				time.Sleep(tempDelay)
+				continue
+			}
+			return
+		}
+
+		tempDelay = 0
+		ws.SetReadLimit(MaxMessageSize)
 		ws.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
+		ws.SetPongHandler(func(string) error {
+			ws.SetReadDeadline(time.Now().Add(pongWait))
+			return nil
+		})
 
-	return newConn(ws), true
+		go s.Handler(newConn(ws), WEBSOCK)
+	}
+}
+
+func (s *HttpServer) Serve(list net.Listener) error {
+	srv := new(http.Server)
+	// Create a new HTTP request multiplexer
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", s.HandleFunc)
+
+	srv.Handler = mux
+	go func() {
+		if err := srv.Serve(list); err != nil {
+			log.Println("gRPC server failed:", err)
+		}
+	}()
+	return nil
 }
 
 // newConn creates a new transport from websocket.

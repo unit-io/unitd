@@ -1,11 +1,9 @@
-package net
+package lineprotocol
 
 import (
 	"context"
-	"crypto/tls"
 	"log"
 	"net"
-	"strings"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -20,14 +18,24 @@ const (
 	MaxMessageSize = 1 << 19
 )
 
-//Handler is a callback which get called when a grpc stream is established
-type StreamHandler func(c net.Conn, proto Proto)
+type GrpcServer server
 
-// type grpcServer struct {
+func NewGrpcServer(opts ...Options) *GrpcServer {
+	srv := &GrpcServer{
+		opts: new(options),
+	}
+	WithDefaultOptions().set(srv.opts)
+	for _, opt := range opts {
+		opt.set(srv.opts)
+	}
+	return srv
+}
+
+// type GrpcServer struct {
 // }
 
 // Start implements Unitd.Start
-func (s *Server) Start(ctx context.Context, info *pbx.ConnInfo) (*pbx.ConnInfo, error) {
+func (s *GrpcServer) Start(ctx context.Context, info *pbx.ConnInfo) (*pbx.ConnInfo, error) {
 	if info != nil {
 		// Will panic if msg is not of *pbx.ConnInfo type. This is an intentional panic.
 		return info, nil
@@ -51,39 +59,30 @@ func StreamConn(
 }
 
 // Stream implements duplex Unitd.Stream
-func (s *Server) Stream(stream pbx.Unitd_StreamServer) error {
+func (s *GrpcServer) Stream(stream pbx.Unitd_StreamServer) error {
 	conn := StreamConn(stream)
 	defer conn.Close()
 
-	go s.StreamHandler(conn, GRPC)
+	go s.Handler(conn, GRPC)
 	<-stream.Context().Done()
 	return nil
 }
 
 // Stop implements Unitd.Stop
-func (s *Server) Stop(context.Context, *pbx.Empty) (*pbx.Empty, error) {
+func (s *GrpcServer) Stop(context.Context, *pbx.Empty) (*pbx.Empty, error) {
 	return nil, nil
 }
 
-func (s *Server) ListenAndServe(addr string, kaEnabled bool, tlsConf *tls.Config) error {
-	if addr == "" {
-		return nil
-	}
-
-	lis, err := netListener(addr)
-	if err != nil {
-		return err
-	}
-
+func (s *GrpcServer) Serve(list net.Listener) error {
 	secure := ""
 	var opts []grpc.ServerOption
 	opts = append(opts, grpc.MaxRecvMsgSize(int(MaxMessageSize)))
-	if tlsConf != nil {
-		opts = append(opts, grpc.Creds(credentials.NewTLS(tlsConf)))
+	if s.opts.TLSConfig != nil {
+		opts = append(opts, grpc.Creds(credentials.NewTLS(s.opts.TLSConfig)))
 		secure = " secure"
 	}
 
-	if kaEnabled {
+	if s.opts.KeepAlive {
 		kepConfig := keepalive.EnforcementPolicy{
 			MinTime:             1 * time.Second, // If a client pings more than once every second, terminate the connection
 			PermitWithoutStream: true,            // Allow pings even when there are no active streams
@@ -101,21 +100,11 @@ func (s *Server) ListenAndServe(addr string, kaEnabled bool, tlsConf *tls.Config
 	pbx.RegisterUnitdServer(srv, s)
 	log.Printf("gRPC/%s%s server is registered", grpc.Version, secure)
 	go func() {
-		if err := srv.Serve(lis); err != nil {
+		if err := srv.Serve(list); err != nil {
 			log.Println("gRPC server failed:", err)
 		}
 	}()
 	return nil
 }
 
-// netListener creates net.Listener for tcp and unix domains:
-// if addr is is in the form "unix:/run/tinode.sock" it's a unix socket, otherwise TCP host:port.
-func netListener(addr string) (net.Listener, error) {
-	addrParts := strings.SplitN(addr, ":", 2)
-	if len(addrParts) == 2 && addrParts[0] == "unix" {
-		return net.Listen("unix", addrParts[1])
-	}
-	return net.Listen("tcp", addr)
-}
-
-var _ pbx.UnitdServer = (*Server)(nil)
+var _ pbx.UnitdServer = (*GrpcServer)(nil)

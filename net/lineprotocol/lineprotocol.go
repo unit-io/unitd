@@ -1,29 +1,9 @@
-package net
+package lineprotocol
 
 import (
 	"fmt"
 	"io"
-	"sync"
 )
-
-// Wire transport
-// LogStatus represents the state of log, written to applied
-type Proto int
-
-const (
-	NONE Proto = iota
-	RPC
-	GRPC
-	WEBSOCK
-	CLUSTER
-)
-
-type Server struct {
-	sync.Mutex
-	TcpHandler    TcpHandler //The handler to invoke when a connection is accepted
-	StreamHandler StreamHandler
-	Closing       chan bool
-}
 
 //Packet is the interface all our packets in the line protocol will be implementing
 type Packet interface {

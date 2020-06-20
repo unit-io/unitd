@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	lp "github.com/unit-io/unitd/net"
+	lp "github.com/unit-io/unitd/net/lineprotocol"
 )
 
 // varHeader reserves the bytes for a variable header.

@@ -10,9 +10,9 @@ import (
 
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
-	lp "github.com/unit-io/unitd/net"
-	"github.com/unit-io/unitd/net/grpc"
-	"github.com/unit-io/unitd/net/mqtt"
+	lp "github.com/unit-io/unitd/net/lineprotocol"
+	"github.com/unit-io/unitd/net/lineprotocol/grpc"
+	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
 	"github.com/unit-io/unitd/store"

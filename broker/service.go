@@ -3,16 +3,15 @@ package broker
 import (
 	"context"
 	"net"
-	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
 
-	"github.com/saffat-in/trace/websocket"
 	"github.com/unit-io/unitd/config"
-	lp "github.com/unit-io/unitd/net"
+	lp "github.com/unit-io/unitd/net/lineprotocol"
 	"github.com/unit-io/unitd/net/listener"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
@@ -33,9 +32,9 @@ type Service struct {
 	config  *config.Config     // The configuration for the service.
 	cancel  context.CancelFunc // cancellation function
 	start   time.Time          // The service start time
-	http    *http.Server       // The underlying HTTP server.
-	tcp     *lp.Server         // The underlying TCP server.
-	grpc    *lp.Server         // The underlying GRPC server.
+	http    *lp.HttpServer     // The underlying HTTP server.
+	tcp     *lp.TcpServer      // The underlying TCP server.
+	grpc    *lp.GrpcServer     // The underlying GRPC server.
 	meter   *Meter             // The metircs to measure timeseries on message events
 	stats   *stats.Stats
 }
@@ -50,27 +49,23 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 		cancel:  cancel,
 		start:   time.Now(),
 		// subscriptions: message.NewSubscriptions(),
-		http:  new(http.Server),
-		tcp:   new(lp.Server),
-		grpc:  new(lp.Server),
+		http:  lp.NewHttpServer(),
+		tcp:   lp.NewTcpServer(),
+		grpc:  lp.NewGrpcServer(),
 		meter: NewMeter(),
 		stats: stats.New(&stats.Config{Addr: "localhost:8094", Size: 50}, stats.MaxPacketSize(1400), stats.MetricPrefix("trace")),
 	}
 
-	// Create a new HTTP request multiplexer
-	mux := http.NewServeMux()
-	mux.HandleFunc("/", s.onRequest)
-
-	// Varz
-	if cfg.VarzPath != "" {
-		mux.HandleFunc(cfg.VarzPath, s.HandleVarz)
-		log.Info("service", "Stats variables exposed at "+cfg.VarzPath)
-	}
+	// // Varz
+	// if cfg.VarzPath != "" {
+	// 	s.http.HandleFunc(cfg.VarzPath, s.HandleVarz)
+	// 	log.Info("service", "Stats variables exposed at "+cfg.VarzPath)
+	// }
 
 	//attach handlers
-	s.grpc.StreamHandler = s.onAcceptConn
-	s.http.Handler = mux
-	s.tcp.TcpHandler = s.onAcceptConn
+	s.grpc.Handler = s.onAcceptConn
+	s.http.Handler = s.onAcceptConn
+	s.tcp.Handler = s.onAcceptConn
 
 	// Create a new MAC from the key.
 	if s.MAC, err = crypto.New([]byte(s.config.Encryption(s.config.EncryptionConfig).Key)); err != nil {
@@ -86,6 +81,16 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 	return s, nil
 }
 
+// netListener creates net.Listener for tcp and unix domains:
+// if addr is is in the form "unix:/run/tinode.sock" it's a unix socket, otherwise TCP host:port.
+func netListener(addr string) (net.Listener, error) {
+	addrParts := strings.SplitN(addr, ":", 2)
+	if len(addrParts) == 2 && addrParts[0] == "unix" {
+		return net.Listen("unix", addrParts[1])
+	}
+	return net.Listen("tcp", addr)
+}
+
 //Listen starts the service
 func (s *Service) Listen() (err error) {
 	defer s.Close()
@@ -99,7 +104,6 @@ func (s *Service) Listen() (err error) {
 
 //listen configures main listerner on specefied address
 func (s *Service) listen(addr string) {
-
 	//Create a new listener
 	log.Info("service.listen", "starting the listner at "+addr)
 
@@ -111,7 +115,13 @@ func (s *Service) listen(addr string) {
 	l.SetReadTimeout(120 * time.Second)
 
 	// Configure the protos
-	s.grpc.ListenAndServe(s.config.GrpcListen, false, nil)
+	if s.config.GrpcListen != "" {
+		grpcList, err := netListener(s.config.GrpcListen)
+		if err != nil {
+			return
+		}
+		s.grpc.Serve(grpcList)
+	}
 	l.ServeCallback(listener.MatchWS("GET"), s.http.Serve)
 	l.ServeCallback(listener.MatchAny(), s.tcp.Serve)
 
@@ -123,14 +133,6 @@ func (s *Service) onAcceptConn(t net.Conn, proto lp.Proto) {
 	conn := s.newConn(t, proto)
 	go conn.readLoop()
 	go conn.writeLoop()
-}
-
-// Handle a new HTTP request.
-func (s *Service) onRequest(w http.ResponseWriter, r *http.Request) {
-	if ws, ok := websocket.Handler(w, r); ok {
-		s.onAcceptConn(ws, lp.WEBSOCK)
-		return
-	}
 }
 
 func (s *Service) onSignal(sig os.Signal) {

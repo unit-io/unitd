@@ -72,7 +72,7 @@ func (k Key) SetPermissions(value uint32) {
 	k[0] = byte(value)
 }
 
-// Target returns the topic (first element of the query, second element of an SSID)
+// Target returns the topic (first element of the query, second element of an parts)
 func (topic *Topic) Target() uint32 {
 	return hash.WithSalt(topic.Topic[:topic.Size], message.Contract)
 }

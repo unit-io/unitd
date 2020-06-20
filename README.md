@@ -27,7 +27,7 @@ To build Unitd from source code use go get command and copy [unitd.conf](https:/
 > go get -u github.com/unit-io/unitd && unitd
 
 ## Usage
-The unitd supports publish/subscribe to topic. You need to register a client id to connect to the unitd daemon service and generate keys for topic in order to publish or subscribe to topics. See [usage guide](https://github.com/unit-io/unitd/tree/master/docs/usage/usage.md). 
+The unitd supports publish/subscribe to topic. You need to register a client id to connect to the unitd daemon service and generate keys for topic in order to publish or subscribe to topics. See [usage guide](https://github.com/unit-io/unitd/tree/master/docs/usage.md). 
 
 ## Contributing
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.
