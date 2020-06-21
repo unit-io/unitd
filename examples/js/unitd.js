@@ -35,30 +35,6 @@ function genClientId() {
 }
 
 // Called after form input is processed
-function startConnect() {
-    // Fetch the hostname/IP address and port number from the form
-    host = document.getElementById("host").value;
-    port = document.getElementById("port").value;
-    clientID = document.getElementById("clientid").value;
-
-    // Print output for the user in the messages div
-    document.getElementById("messages").innerHTML += '<span>Connecting to: ' + host + ' on port: ' + port + '</span><br/>';
-    document.getElementById("messages").innerHTML += '<span>Using the following client value: ' + clientID + '</span><br/>';
-
-    // Initialize new Paho client connection
-    client = new Paho.MQTT.Client(host, Number(port), clientID);
-
-    // Set callback handlers
-    client.onConnectionLost = onConnectionLost;
-    client.onMessageArrived = onMessageArrived;
-
-    // Connect the client, if successful, call onConnect function
-    client.connect({
-        onSuccess: onConnect,
-    });
-}
-
-// Called after form input is processed
 function genKey() {
     // Fetch the MQTT topic from the form
     topic = document.getElementById("topic").value;

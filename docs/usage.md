@@ -1,4 +1,4 @@
-# unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://godoc.org/github.com/unit-io/unitd) [![Go Report Card](https://goreportcard.com/badge/github.com/unit-io/unitd)](https://goreportcard.com/report/github.com/unit-io/unitd) [![Coverage Status](https://coveralls.io/repos/github/unit-io/unitd/badge.svg?branch=master)](https://coveralls.io/github/unit-io/unitd?branch=master)
+# unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://godoc.org/github.com/unit-io/unitd)
 
 ## Unitd is an open source messaging broker for IoT and other real-time messaging service. Unitd messaging API is built for speed and security.
 
@@ -23,14 +23,14 @@ To build Unitd from source code use go get command and copy [unitd.conf](https:/
 ## Usage
 The examples folder has various examples for unitd usage. Code snippet is given below to use unitd messaging broker with web socket and javascript client.
 
-First you need to register a client id. To get new client id send connect request using blank client id. The unitd generates two primary client Ids.
+First you need to register a client id. To get new client id send connect request using blank client id.
 
 Add below mqtt client script to the web page
 
 >  <script src="https://cdnjs.cloudflare.com/ajax/libs/paho-mqtt/1.0.1/mqttws31.js" type="text/javascript"></script>
 >  <script src="../unitd.js" type="text/javascript"></script>
 
-Send empty client Id (as shown in the below code snippet) in order to register a new client. The unitd generate two primary client Ids. These client Ids are used to request secondary client Ids. You could request multiple of secondary client Ids in order to send and receive messages to multiple topics. For isolation of topics use secondary Ids those are generated using distinct primary Ids. 
+Send empty client Id (as shown in the below code snippet) in order to register a new client.
 
 > <script type="text/javascript">client = new Paho.MQTT.Client("127.0.01", 6060, "");</script>
 ```
@@ -49,7 +49,7 @@ Send empty client Id (as shown in the below code snippet) in order to register a
 
 ```
 
-Next step: send primary client Id in order to request secondary client Id. The code snippet is given below to request client Id. Cclient id request type is 0. You cannot request type 1 i.e. primary Id but you must use primary client Id for the connection in order to make request of secondary client Ids. You can request multiple secondary client Ids.
+Next step: connect to unitd server using primary client Id and send request to generate secondary client Id. The code snippet is given below to request client Id. Client id request type is 0, as you cannot request primary client Id of type 1. You can send multiple requests to generate secondary client Ids.
 
 Note, for topic isolation use client Ids generated from distinct primary client Ids.
 
@@ -79,10 +79,10 @@ To publish and subscribe to the topic use a valid key.  Key is separated from to
 ```
     // Once a connection has been made, publish and subscribe to a topic and use a valid key. Topics are separated by "." character, use * as wildcard character.
     // Subscribe to team alpha channe1.
-    client.subscribe("<<key>>/teams.alpha.ch1");
+    client.subscribe("<<key>>/teams.alpha.ch1.u1");
     // Publish message to team alpha channel1.
-    message = new Paho.MQTT.Message("Message for teal alpha channel1!");
-    message.destinationName = "<<key>>/teams.alpha.ch1";
+    message = new Paho.MQTT.Message("Message for teal alpha channel1 receiver1!");
+    message.destinationName = "<<key>>/teams.alpha.ch1.u1";
     client.send(message);
 
 ```
@@ -93,17 +93,13 @@ Following are valid topic subscriptions:
 Subscribe to team alpha all channels
 - "key/teams.alpha`...`"
 
-Subscribe to channel1 of any team
-- "key/teams.`*`.ch1"
+Subscribe to any team channel1 receiver1
+- "key/teams.`*`.ch1.u1"
 
 Send messages to channel and channel receivers:
 
 ```
     // Once a connection has been made, publish and subscribe to a topic and use a valid key.
-    message = new Paho.MQTT.Message("Hello team alpha channel1!");
-    message.destinationName = "<<key>>/teams.alpha.ch1;
-    client.send(message);
-
     message = new Paho.MQTT.Message("Hello team alpha channel1 receiver1!");
     message.destinationName = "<<key>>/teams.alpha.ch1.u1;
     client.send(message);

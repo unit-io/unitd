@@ -1,6 +1,6 @@
 # unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd)
 
-## Unitd is a real-time messaging service for IoT connected devices, it supports pubsub using GRPC client or MQTT client over tcp or websocket. 
+## Unitd is an open source messaging broker for IoT and other real-time messaging service. Unitd messaging API is built for speed and security.
 
 Unitd is blazing fast and secure messaging infrastructure and APIs for IoT, gaming, apps and real-time web.
 
@@ -16,9 +16,8 @@ Unitd can be used for online gaming and mobile apps as it satisfy the requiremen
 - Supports subscribing to wildcard topics
 
 ## Unitd Clients
-To run unitdb as daemon service start [unitd](https://github.com/unit-io/unitd) application and copy unitd.conf to the path unitd binary is placed. Unitd supports pubsub using GRPC client or MQTT client to connect to service using tcp or websocket.
-- [unitd-go](https://github.com/unit-io/unitd-go) is Go client to pubsub messages using GRPC application
-- [unitd-ws](https://github.com/unit-io/unitd-ws) is javascript client to pubsub messages using MQTT over websocket 
+- [unitd-go](https://github.com/unit-io/unitd-go) Go client to pubsub messages over protobuf using GRPC application
+- [unitd-ws](https://github.com/unit-io/unitd-ws) Javascript client to pubsub messages over websocket using MQTT protocol.
 
 
 ## Quick Start

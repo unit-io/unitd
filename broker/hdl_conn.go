@@ -37,24 +37,24 @@ func (c *Conn) readLoop() error {
 
 		switch c.proto {
 		case lp.GRPC:
-			// Decode an incoming grpc packet
+			// Decode an incoming packet
 			pkt, err := grpc.ReadPacket(reader)
 			if err != nil {
 				return err
 			}
 
-			// Grpc message handler
+			// Message handler
 			if err := c.handler(pkt); err != nil {
 				return err
 			}
 		default:
-			// Decode an incoming MQTT packet
+			// Decode an incoming packet
 			pkt, err := mqtt.ReadPacket(reader)
 			if err != nil {
 				return err
 			}
 
-			// Mqtt message handler
+			// Message handler
 			if err := c.handler(pkt); err != nil {
 				return err
 			}
@@ -62,7 +62,7 @@ func (c *Conn) readLoop() error {
 	}
 }
 
-// handle handles an MQTT receive.
+// handle handles packet receive.
 func (c *Conn) handler(pkt lp.Packet) error {
 	start := time.Now()
 	var status int = 200
@@ -230,7 +230,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 	return nil
 }
 
-// onConnect is a handler for MQTT Connect events.
+// onConnect is a handler for Connect events.
 func (c *Conn) onConnect(clientID []byte) (uid.ID, *types.Error) {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onConnect").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
@@ -265,7 +265,7 @@ func (c *Conn) onConnect(clientID []byte) (uid.ID, *types.Error) {
 	return clientid, nil
 }
 
-// onSubscribe is a handler for MQTT Subscribe events.
+// onSubscribe is a handler for Subscribe events.
 func (c *Conn) onSubscribe(pkt lp.Subscribe, msgTopic []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
@@ -302,7 +302,7 @@ func (c *Conn) onSubscribe(pkt lp.Subscribe, msgTopic []byte) *types.Error {
 
 // ------------------------------------------------------------------------------------
 
-// onUnsubscribe is a handler for MQTT Unsubscribe events.
+// onUnsubscribe is a handler for Unsubscribe events.
 func (c *Conn) onUnsubscribe(pkt lp.Unsubscribe, msgTopic []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onUnsubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
@@ -324,7 +324,7 @@ func (c *Conn) onUnsubscribe(pkt lp.Unsubscribe, msgTopic []byte) *types.Error {
 	return nil
 }
 
-// OnPublish is a handler for MQTT Publish events.
+// OnPublish is a handler for Publish events.
 func (c *Conn) onPublish(pkt lp.Publish, msgTopic []byte, payload []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Int64("duration", time.Since(start).Nanoseconds()).Msg("")

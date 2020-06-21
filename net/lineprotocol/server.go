@@ -14,8 +14,7 @@ import (
 // ErrServerClosed occurs when a tcp server is closed.
 var ErrServerClosed = errors.New("Server closed")
 
-// Wire transport
-// LogStatus represents the state of log, written to applied
+// Proto represents the type of connection
 type Proto int
 
 const (
@@ -26,7 +25,7 @@ const (
 	CLUSTER
 )
 
-//Handler is a callback which get called when a grpc stream is established
+//Handler is a callback which get called when a tcp, websocket connection is established or a grpc stream is established
 type Handler func(c net.Conn, proto Proto)
 
 type options struct {
@@ -56,11 +55,11 @@ func newFuncOption(f func(*options)) *fOption {
 }
 
 // WithDefaultOptions will create client connection with some default values.
-//   KeepAlive: false
+//   KeepAlive: true
 //   TlsConfig: nil
 func WithDefaultOptions() Options {
 	return newFuncOption(func(o *options) {
-		o.KeepAlive = false
+		o.KeepAlive = true
 		o.TLSConfig = nil
 	})
 }

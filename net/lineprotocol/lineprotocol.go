@@ -39,7 +39,7 @@ type FixedHeader struct {
 	RemainingLength int
 }
 
-// Connect represents an MQTT connect packet.
+// Connect represents a connect packet.
 type Connect struct {
 	ProtoName      []byte
 	Version        uint8
@@ -60,7 +60,7 @@ type Connect struct {
 	Packet
 }
 
-// Connack represents an MQTT connack packet.
+// Connack represents an connack packet.
 // 0x00 connection accepted
 // 0x01 refused: unacceptable proto version
 // 0x02 refused: identifier rejected
@@ -84,7 +84,7 @@ type Pingresp struct {
 type Disconnect struct {
 }
 
-// Publish represents an MQTT publish packet.
+// Publish represents a publish packet.
 type Publish struct {
 	FixedHeader
 	Topic       []byte
