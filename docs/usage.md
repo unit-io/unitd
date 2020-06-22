@@ -6,24 +6,19 @@ Unitd is a real-time messaging service for IoT connected devices, it is based on
 
 Unitd can be used for online gaming and mobile apps as it satisfy the requirements for low latency and binary messaging. Unitd is perfect for the internet of things and internet connected devices.
 
-## Quick Start
-To build [unitd](https://github.com/unit-io/unitd) from source code use go get command and copy unitd.conf to the path unitd binary is placed.
-
-> go get -u github.com/unit-io/unitd && unitd
-
 ## Unitd Clients
 - [unitd-go](https://github.com/unit-io/unitd-go) Go client to pubsub messages over protobuf using GRPC application
 - [unitd-ws](https://github.com/unit-io/unitd-ws) Javascript client to pubsub messages over websocket using MQTT protocol. 
 
 ## Quick Start
-To build Unitd from source code use go get command and copy [unitd.conf](https://github.com/unit-io/unitd/tree/master/unitd.conf) to the path unitd binary is placed.
+To build unitd from source code use go get command and copy [unitd.conf](https://github.com/unit-io/unitd/tree/master/unitd.conf) to the path unitd binary is placed.
 
 > go get -u github.com/unit-io/unitd && unitd
 
 ## Usage
 The examples folder has various examples for unitd usage. Code snippet is given below to use unitd messaging broker with web socket and javascript client.
 
-First you need to register a client id. To get new client id send connect request using blank client id.
+First you need to register a client Id. To get new client id send connect request using blank client id.
 
 Add below mqtt client script to the web page
 
@@ -67,7 +62,7 @@ To subscribe to topic and publish messages to a topic generate key for the topic
 
 ```
     // Once a connection has been made, send payload to request key to publish or subscribe a topic. Pass "rw" to the Type field to set read/write permissions for key on topic.
-    payload = JSON.stringify({"topic":"teams.alpha.ch1","type":"rw"});
+    payload = JSON.stringify({"topic":"teams.alpha.ch1.u1","type":"rw"});
     message = new Paho.MQTT.Message(payload);
     message.destinationName = "unitd/keygen";
     client.send(message);
@@ -78,9 +73,9 @@ To publish and subscribe to the topic use a valid key.  Key is separated from to
 
 ```
     // Once a connection has been made, publish and subscribe to a topic and use a valid key. Topics are separated by "." character, use * as wildcard character.
-    // Subscribe to team alpha channe1.
+    // Subscribe to team alpha channel1 receiver1.
     client.subscribe("<<key>>/teams.alpha.ch1.u1");
-    // Publish message to team alpha channel1.
+    // Publish message to team alpha channel1 receiver1.
     message = new Paho.MQTT.Message("Message for teal alpha channel1 receiver1!");
     message.destinationName = "<<key>>/teams.alpha.ch1.u1";
     client.send(message);
@@ -90,7 +85,7 @@ To publish and subscribe to the topic use a valid key.  Key is separated from to
 Use dot '.' character as topic separator and use three dots '`...`' at the end to subscribe to all topics following the path or use '`*`' character to subscribe to single wildcard topic.
 
 Following are valid topic subscriptions:
-Subscribe to team alpha all channels
+Subscribe to team alpha all channels and all receivers
 - "key/teams.alpha`...`"
 
 Subscribe to any team channel1 receiver1

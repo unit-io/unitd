@@ -94,9 +94,8 @@ func (c *Conn) Type() message.SubscriberType {
 func (c *Conn) SendMessage(m *message.Message) error {
 	if c.proto == lp.GRPC {
 		packet := grpc.Publish{
-			MessageID: 0, // TODO
-			Topic:     m.Topic,
-			Payload:   m.Payload,
+			Topic:   m.Topic,
+			Payload: m.Payload,
 		}
 		_, err := packet.WriteTo(c.socket)
 		return err
@@ -104,11 +103,10 @@ func (c *Conn) SendMessage(m *message.Message) error {
 
 	packet := lp.Publish{
 		FixedHeader: lp.FixedHeader{
-			QOS: 0, // TODO when we'll support more QoS
+			QOS: 0,
 		},
-		MessageID: 0,         // TODO
-		Topic:     m.Topic,   // The topic for this message.
-		Payload:   m.Payload, // The payload for this message.
+		Topic:   m.Topic,   // The topic for this message.
+		Payload: m.Payload, // The payload for this message.
 	}
 	p := mqtt.Publish(packet)
 	_, err := p.WriteTo(c.socket)

@@ -72,11 +72,10 @@ func (c *Conn) handler(pkt lp.Packet) error {
 	}()
 
 	switch pkt.Type() {
-	// An attempt to connec.
+	// An attempt to connect.
 	case lp.CONNECT:
-		// packet := pkt.(*lp.Connect)
+		var returnCode uint8
 		var packet lp.Connect
-		// copier.Copy(packet, pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Connect(*pkt.(*grpc.Connect))
 		} else {
@@ -90,6 +89,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			status = err.Status
 			c.notifyError(err, 0)
 			c.sendClientID(clientid.Encode(c.service.MAC))
+			returnCode = 0x05 // Unauthorized
 		}
 
 		c.clientid = clientid
@@ -97,11 +97,11 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		// Write the ack
 		if c.proto == lp.GRPC {
 			// Acknowledge the subscription
-			ack := grpc.Connack{ReturnCode: 0x00}
+			ack := grpc.Connack{ReturnCode: returnCode}
 			_, err := ack.WriteTo(c.socket)
 			return err
 		}
-		ack := mqtt.Connack{ReturnCode: 0x00}
+		ack := mqtt.Connack{ReturnCode: returnCode}
 		if _, err := ack.WriteTo(c.socket); err != nil {
 			return err
 		}
@@ -109,9 +109,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 
 		// An attempt to subscribe to a topic.
 	case lp.SUBSCRIBE:
-		// packet := pkt.(lp.Subscribe)
 		var packet lp.Subscribe
-		// copier.Copy(packet, pkt)
 		if c.proto == lp.GRPC {
 			sub := pkt.(*grpc.Subscribe)
 			packet = lp.Subscribe(*sub)
@@ -153,9 +151,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 
 	// An attempt to unsubscribe from a topic.
 	case lp.UNSUBSCRIBE:
-		// packet := pkt.(lp.Unsubscribe)
 		var packet lp.Unsubscribe
-		// copier.Copy(packet, pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Unsubscribe(*pkt.(*grpc.Unsubscribe))
 		} else {
