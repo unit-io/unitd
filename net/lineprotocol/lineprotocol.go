@@ -69,6 +69,7 @@ type Connect struct {
 // 0x05 not authorized
 type Connack struct {
 	ReturnCode uint8
+	ConnID     int32
 	Packet
 }
 

@@ -22,7 +22,7 @@ Unitd can be used for online gaming and mobile apps as it satisfy the requiremen
 ## Tutorials and Videos
 The following screen cast video demonstrate the use of [unitd-ws](https://github.com/unit-io/unitd-ws) javascript client to pubsub messages over websocket using unitd messaging server.
 
-[![Unitd Pubsub](https://img.youtube.com/vi/59xh75mohBQ/0.jpg)](https://www.youtube.com/watch?v=59xh75mohBQ)
+[![Unitd Pubsub](https://img.youtube.com/vi/G8jvEYVEiIo/0.jpg)](https://www.youtube.com/watch?v=G8jvEYVEiIo)
 
 ## Quick Start
 To build Unitd from source code use go get command and copy [unitd.conf](https://github.com/unit-io/unitd/tree/master/unitd.conf) to the path unitd binary is placed.

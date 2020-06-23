@@ -97,7 +97,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		// Write the ack
 		if c.proto == lp.GRPC {
 			// Acknowledge the subscription
-			ack := grpc.Connack{ReturnCode: returnCode}
+			ack := grpc.Connack{ReturnCode: returnCode, ConnID: int32(c.connid)}
 			_, err := ack.WriteTo(c.socket)
 			return err
 		}

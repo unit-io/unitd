@@ -65,44 +65,19 @@ var upgrader = websocket.Upgrader{
 func (s *HttpServer) HandleFunc(w http.ResponseWriter, r *http.Request) {
 	upgrader.CheckOrigin = func(r *http.Request) bool {
 		return true
-
 	}
-	var tempDelay time.Duration // how long to sleep on accept failure
-	for {
-		ws, err := upgrader.Upgrade(w, r, nil)
-		if err != nil {
-			select {
-			case <-signalHandler():
-				return
-			default:
-			}
-
-			if netErr, ok := err.(net.Error); ok && netErr.Temporary() {
-				if tempDelay == 0 {
-					tempDelay = 5 * time.Millisecond
-				} else {
-					tempDelay *= 2
-				}
-				if max := 1 * time.Second; tempDelay > max {
-					tempDelay = max
-				}
-
-				time.Sleep(tempDelay)
-				continue
-			}
-			return
-		}
-
-		tempDelay = 0
-		ws.SetReadLimit(MaxMessageSize)
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		return
+	}
+	ws.SetReadLimit(MaxMessageSize)
+	ws.SetReadDeadline(time.Now().Add(pongWait))
+	ws.SetPongHandler(func(string) error {
 		ws.SetReadDeadline(time.Now().Add(pongWait))
-		ws.SetPongHandler(func(string) error {
-			ws.SetReadDeadline(time.Now().Add(pongWait))
-			return nil
-		})
+		return nil
+	})
 
-		go s.Handler(newConn(ws), WEBSOCK)
-	}
+	go s.Handler(newConn(ws), WEBSOCK)
 }
 
 func (s *HttpServer) Serve(list net.Listener) error {

@@ -243,7 +243,7 @@ func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (e
 // sendClientID generate unique client and send it to new client
 func (c *Conn) sendClientID(clientidentifier string) {
 	c.SendMessage(&message.Message{
-		Topic:   []byte("$SYS/client_identifier/"),
+		Topic:   []byte("unitd/clientid/"),
 		Payload: []byte(clientidentifier),
 	})
 }

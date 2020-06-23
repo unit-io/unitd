@@ -89,6 +89,7 @@ message Conn {
 // 0x05 not authorized
 message Connack {
 	uint32 ReturnCode=1;
+	int32 ConnID=2;
 }
 
 //Pingreq is a keepalive
