@@ -97,7 +97,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		// Write the ack
 		if c.proto == lp.GRPC {
 			// Acknowledge the subscription
-			ack := grpc.Connack{ReturnCode: returnCode, ConnID: int32(c.connid)}
+			ack := grpc.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
 			_, err := ack.WriteTo(c.socket)
 			return err
 		}
@@ -105,7 +105,6 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		if _, err := ack.WriteTo(c.socket); err != nil {
 			return err
 		}
-		return nil
 
 		// An attempt to subscribe to a topic.
 	case lp.SUBSCRIBE:
@@ -147,7 +146,6 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		if _, err := suback.WriteTo(c.socket); err != nil {
 			return err
 		}
-		return nil
 
 	// An attempt to unsubscribe from a topic.
 	case lp.UNSUBSCRIBE:
@@ -178,7 +176,6 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		if _, err := unsuback.WriteTo(c.socket); err != nil {
 			return err
 		}
-		return nil
 
 	// Ping response, respond appropriately.
 	case lp.PINGREQ:
@@ -191,10 +188,8 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		if _, err := ack.WriteTo(c.socket); err != nil {
 			return err
 		}
-		return nil
 
 	case lp.DISCONNECT:
-		return nil
 
 	case lp.PUBLISH:
 		var packet lp.Publish
@@ -219,7 +214,6 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			if _, err := ack.WriteTo(c.socket); err != nil {
 				return err
 			}
-			return nil
 		}
 	}
 

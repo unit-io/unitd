@@ -1,6 +1,7 @@
 package broker
 
 import (
+	"context"
 	"encoding/json"
 	"net"
 	"runtime/debug"
@@ -122,6 +123,8 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 	defer c.closeW.Done()
 
 	select {
+	case <-c.closeC:
+		return false
 	case c.send <- buf:
 	case <-time.After(time.Microsecond * 50):
 		return false
@@ -130,12 +133,14 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 	return true
 }
 
-func (c *Conn) writeLoop() {
+func (c *Conn) writeLoop(ctx context.Context) {
 	c.closeW.Add(1)
 	defer c.closeW.Done()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case <-c.closeC:
 			return
 		case msg, ok := <-c.send:

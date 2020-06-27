@@ -89,7 +89,7 @@ message Conn {
 // 0x05 not authorized
 message Connack {
 	uint32 ReturnCode=1;
-	int32 ConnID=2;
+	uint32 ConnID=2;
 }
 
 //Pingreq is a keepalive
@@ -102,6 +102,7 @@ message Pingresp {
 
 //Disconnect is to signal you want to cease communications with the server
 message Disconnect {
+	uint32 MessageID=1;
 }
 
 // Publish represents a publish packet.
@@ -109,6 +110,7 @@ message Publish {
 	uint32 MessageID=1;
 	bytes Topic=2;
 	bytes Payload=3;
+	uint32 Qos=4;
 }
 
 //Puback is sent for QOS level one to verify the receipt of a publish
@@ -126,6 +128,7 @@ message Pubrec {
 //Pubrel is a response to pubrec from either the client or server.
 message Pubrel {
 	uint32 MessageID=1;
+	uint32 Qos=2;
 }
 
 //Pubcomp is for saying is in response to a pubrel sent by the publisher
@@ -137,7 +140,7 @@ message Pubcomp {
 //Subscriber is pairing the Qos and topic together
 //for the QOS' pairs in unsubscribe and subscribe
 message Subscriber {
-uint32 MessageID=1;
+	uint32 MessageID=1;
 	bytes Topic=2;
 	uint32 Qos=3;
 }

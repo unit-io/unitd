@@ -14,8 +14,8 @@ const (
 var (
 	// next is the next identifier. It is time in millsecond
 	// to avoid collisions of ids between process restarts.
-	Next = int32(
-		TimeNow().Sub(time.Date(2070, 1, 1, 0, 0, 0, 0, time.UTC)).Seconds(),
+	Next = uint32(
+		time.Date(2070, 1, 1, 0, 0, 0, 0, time.UTC).Sub(TimeNow()),
 	)
 )
 

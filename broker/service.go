@@ -132,7 +132,7 @@ func (s *Service) listen(addr string) {
 func (s *Service) onAcceptConn(t net.Conn, proto lp.Proto) {
 	conn := s.newConn(t, proto)
 	go conn.readLoop()
-	go conn.writeLoop()
+	go conn.writeLoop(s.context)
 }
 
 func (s *Service) onSignal(sig os.Signal) {
