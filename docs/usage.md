@@ -105,4 +105,4 @@ Send messages to channel and channel receivers:
 If you'd like to contribute, please fork the repository and use a feature branch. Pull requests are welcome.
 
 ## Licensing
-Copyright (c) 2016-2020 Saffat IT Solutions Pvt Ltd. This project is licensed under [Affero General Public License v3](https://github.com/unit-io/unitd/blob/master/LICENSE).
+Copyright (c) 2016-2020 Saffat IT Solutions Pvt Ltd. This project is licensed under [MIT License](https://github.com/unit-io/unitd/blob/master/LICENSE).
