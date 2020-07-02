@@ -111,7 +111,7 @@ func RegisterAdapter(name string, a adapter.Adapter) {
 // MessageStore is a Message struct to hold methods for persistence mapping for the Message object.
 type MessageStore struct{}
 
-// Message is the ancor for storing/retrieving Message objects
+// Message is the anchor for storing/retrieving Message objects
 var Message MessageStore
 
 func (m *MessageStore) Put(contract uint32, topic, payload []byte) error {

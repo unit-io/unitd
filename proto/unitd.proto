@@ -140,7 +140,6 @@ message Pubcomp {
 //Subscriber is pairing the Qos and topic together
 //for the QOS' pairs in unsubscribe and subscribe
 message Subscriber {
-	uint32 MessageID=1;
 	bytes Topic=2;
 	uint32 Qos=3;
 }
