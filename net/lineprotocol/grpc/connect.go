@@ -54,6 +54,7 @@ func (c *Connect) String() string {
 func (c *Connack) WriteTo(w io.Writer) (int64, error) {
 	connack := pbx.Connack{
 		ReturnCode: uint32(c.ReturnCode),
+		ConnID:     c.ConnID,
 	}
 	pkt, err := proto.Marshal(&connack)
 	if err != nil {

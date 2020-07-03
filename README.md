@@ -1,8 +1,8 @@
 # unitd [![GoDoc](https://godoc.org/github.com/unit-io/unitd?status.svg)](https://pkg.go.dev/github.com/unit-io/unitd)
 
-## Unitd is an open source messaging broker for IoT and other real-time messaging service. Unitd messaging API is built for speed and security.
+## Unitd is an open source messaging system for microservice, IoT and real-time internet connected devices. Unitd messaging API is built for speed and security.
 
-The unitd is blazing fast and secure messaging system for microservices, IoT, and real-time web. Unitd satisfy the requirements for low latency and binary messaging, it is perfect messaging system for the internet of things and internet connected devices.
+The unitd is blazing fast and secure messaging system for microservices, IoT, and real-time internet connected devices. Unitd satisfy the requirements for low latency and binary messaging, it is perfect messaging system for internet of things and internet connected devices.
 
 # About Unitd
 
@@ -14,8 +14,8 @@ The unitd is blazing fast and secure messaging system for microservices, IoT, an
 - Supports subscribing to wildcard topics
 
 ## Unitd Clients
-- [unitd-go](https://github.com/unit-io/unitd-go) Lightweight and high performance publish-subscribe messaging system client library.
-- [unitd-js](https://github.com/unit-io/unitd-js) High performance publish-subscribe messaging system javascript client application.
+- [unitd-go](https://github.com/unit-io/unitd-go) Lightweight and high performance publish-subscribe messaging system - Go client library.
+- [unitd-js](https://github.com/unit-io/unitd-js) High performance publish-subscribe messaging system - javascript client application.
 
 ## Tutorials and Videos
 The following screen cast video demonstrate the use of [unitd-js](https://github.com/unit-io/unitd-js) javascript client to publish-subscribe messages over websocket using unitd messaging system.

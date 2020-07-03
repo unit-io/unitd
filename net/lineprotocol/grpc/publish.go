@@ -147,10 +147,15 @@ func unpackPublish(data []byte) Packet {
 	var pkt pbx.Publish
 	proto.Unmarshal(data, &pkt)
 
+	fh := lp.FixedHeader{
+		QOS: uint8(pkt.Qos),
+	}
+
 	return &Publish{
-		MessageID: uint16(pkt.MessageID),
-		Topic:     pkt.Topic,
-		Payload:   pkt.Payload,
+		FixedHeader: fh,
+		MessageID:   uint16(pkt.MessageID),
+		Topic:       pkt.Topic,
+		Payload:     pkt.Payload,
 	}
 }
 
@@ -173,8 +178,14 @@ func unpackPubrec(data []byte) Packet {
 func unpackPubrel(data []byte) Packet {
 	var pkt pbx.Pubrel
 	proto.Unmarshal(data, &pkt)
+
+	fh := lp.FixedHeader{
+		QOS: uint8(pkt.Qos),
+	}
+
 	return &Pubrel{
-		MessageID: uint16(pkt.MessageID),
+		FixedHeader: fh,
+		MessageID:   uint16(pkt.MessageID),
 	}
 }
 
