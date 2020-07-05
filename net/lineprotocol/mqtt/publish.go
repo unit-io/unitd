@@ -15,12 +15,11 @@ type (
 	Pubcomp lp.Pubcomp
 )
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Publish) WriteTo(w io.Writer) (int64, error) {
+func (p *Publish) encode() (bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	buf.Write(p.Topic)
-	if p.FixedHeader.QOS > 0 {
+	if p.FixedHeader.Qos > 0 {
 		buf.Write(encodeUint16(p.MessageID))
 	}
 	buf.Write(p.Payload)
@@ -29,8 +28,26 @@ func (p *Publish) WriteTo(w io.Writer) (int64, error) {
 	fh := FixedHeader{MessageType: lp.PUBLISH, RemainingLength: buf.Len() + 2}
 	packet := fh.pack(&p.FixedHeader)
 	packet.Write(varHeader[:2])
-	packet.Write(buf.Bytes())
-	return packet.WriteTo(w)
+	_, err := packet.Write(buf.Bytes())
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (p *Publish) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded message to the buffer.
+func (p *Publish) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -43,13 +60,34 @@ func (p *Publish) String() string {
 	return "pub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Puback) WriteTo(w io.Writer) (int64, error) {
-	// Write to the underlying buffer
+// Info returns Qos and MessageID of this packet.
+func (p *Publish) Info() lp.Info {
+	return lp.Info{Qos: p.Qos, MessageID: p.MessageID}
+}
+
+func (p *Puback) encode() (bytes.Buffer, error) {
 	fh := FixedHeader{MessageType: lp.PUBACK, RemainingLength: 2}
 	packet := fh.pack(nil)
-	packet.Write(encodeUint16(p.MessageID))
-	return packet.WriteTo(w)
+	_, err := packet.Write(encodeUint16(p.MessageID))
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (p *Puback) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Puback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -62,13 +100,34 @@ func (p *Puback) String() string {
 	return "puback"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubrec) WriteTo(w io.Writer) (int64, error) {
-	// Write to the underlying buffer
+// Info returns Qos and MessageID of this packet.
+func (p *Puback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
+func (p *Pubrec) encode() (bytes.Buffer, error) {
 	fh := FixedHeader{MessageType: lp.PUBREC, RemainingLength: 2}
 	packet := fh.pack(nil)
-	packet.Write(encodeUint16(p.MessageID))
-	return packet.WriteTo(w)
+	_, err := packet.Write(encodeUint16(p.MessageID))
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubrec) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubrec) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -81,13 +140,35 @@ func (p *Pubrec) String() string {
 	return "pubrec"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubrel) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Pubrec) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
+func (p *Pubrel) encode() (bytes.Buffer, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.PUBREL, RemainingLength: 2}
 	packet := fh.pack(&p.FixedHeader)
-	packet.Write(encodeUint16(p.MessageID))
-	return packet.WriteTo(w)
+	_, err := packet.Write(encodeUint16(p.MessageID))
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubrel) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubrel) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -100,13 +181,35 @@ func (p *Pubrel) String() string {
 	return "pubrel"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubcomp) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Pubrel) Info() lp.Info {
+	return lp.Info{Qos: p.Qos, MessageID: p.MessageID}
+}
+
+func (p *Pubcomp) encode() (bytes.Buffer, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.PUBCOMP, RemainingLength: 2}
 	packet := fh.pack(nil)
-	packet.Write(encodeUint16(p.MessageID))
-	return packet.WriteTo(w)
+	_, err := packet.Write(encodeUint16(p.MessageID))
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubcomp) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubcomp) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -119,11 +222,16 @@ func (p *Pubcomp) String() string {
 	return "pubcomp"
 }
 
+// Info returns Qos and MessageID of this packet.
+func (p *Pubcomp) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
 func unpackPublish(data []byte, fh FixedHeader) Packet {
 	bookmark := uint32(0)
 	topic := readString(data, &bookmark)
 	var msgID uint16
-	if fh.QOS > 0 {
+	if fh.Qos > 0 {
 		msgID = readUint16(data, &bookmark)
 	}
 

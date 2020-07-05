@@ -14,8 +14,7 @@ type (
 	Unsuback    lp.Unsuback
 )
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
+func (s *Subscribe) encode() (bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	//buf.Write(reserveForHeader)
@@ -28,8 +27,26 @@ func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.SUBSCRIBE, RemainingLength: buf.Len()}
 	packet := fh.pack(&s.FixedHeader)
-	packet.Write(buf.Bytes())
-	return packet.WriteTo(w)
+	_, err := packet.Write(buf.Bytes())
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (s *Subscribe) Encode() []byte {
+	buf, err := s.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
+	buf, err := s.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -47,8 +64,12 @@ func (s *Subscribe) String() string {
 	return "sub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (s *Suback) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (s *Subscribe) Info() lp.Info {
+	return lp.Info{Qos: 1, MessageID: s.MessageID}
+}
+
+func (s *Suback) encode() (bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	//buf.Write(reserveForHeader)
@@ -60,8 +81,26 @@ func (s *Suback) WriteTo(w io.Writer) (int64, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.SUBACK, RemainingLength: buf.Len()}
 	packet := fh.pack(nil)
-	packet.Write(buf.Bytes())
-	return packet.WriteTo(w)
+	_, err := packet.Write(buf.Bytes())
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (s *Suback) Encode() []byte {
+	buf, err := s.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (s *Suback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := s.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -79,8 +118,12 @@ func (s *Suback) String() string {
 	return "suback"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (s *Suback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: s.MessageID}
+}
+
+func (u *Unsubscribe) encode() (bytes.Buffer, error) {
 	var buf bytes.Buffer
 
 	//buf.Write(reserveForHeader)
@@ -92,8 +135,26 @@ func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.UNSUBSCRIBE, RemainingLength: buf.Len()}
 	packet := fh.pack(&u.FixedHeader)
-	packet.Write(buf.Bytes())
-	return packet.WriteTo(w)
+	_, err := packet.Write(buf.Bytes())
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (u *Unsubscribe) Encode() []byte {
+	buf, err := u.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// Write writes the encoded Packet to the underlying writer.
+func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
+	buf, err := u.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -106,13 +167,35 @@ func (u *Unsubscribe) String() string {
 	return "unsub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (u *Unsuback) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (u *Unsubscribe) Info() lp.Info {
+	return lp.Info{Qos: 1, MessageID: u.MessageID}
+}
+
+func (u *Unsuback) encode() (bytes.Buffer, error) {
 	// Write to the underlying buffer
 	fh := FixedHeader{MessageType: lp.UNSUBACK, RemainingLength: 2}
 	packet := fh.pack(nil)
-	packet.Write(encodeUint16(u.MessageID))
-	return packet.WriteTo(w)
+	_, err := packet.Write(encodeUint16(u.MessageID))
+	return packet, err
+}
+
+// Encode encodes message into binary data
+func (u *Unsuback) Encode() []byte {
+	buf, err := u.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (u *Unsuback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := u.encode()
+	if err != nil {
+		return 0, err
+	}
+	return buf.WriteTo(w)
 }
 
 // Type returns the MQTT Packet type.
@@ -123,6 +206,11 @@ func (u *Unsuback) Type() uint8 {
 // String returns the name of mqtt operation.
 func (u *Unsuback) String() string {
 	return "unsuback"
+}
+
+// Info returns Qos and MessageID of this packet.
+func (u *Unsuback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: u.MessageID}
 }
 
 func unpackSubscribe(data []byte, fh FixedHeader) Packet {

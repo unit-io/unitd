@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/golang/protobuf/proto"
@@ -15,8 +16,8 @@ type (
 	Unsuback    lp.Unsuback
 )
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
+func (s *Subscribe) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	var subs []*pbx.Subscriber
 	for _, t := range s.Subscriptions {
 		var sub *pbx.Subscriber
@@ -30,11 +31,29 @@ func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
 	}
 	pkt, err := proto.Marshal(&sub)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_SUBSCRIBE, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (s *Subscribe) Encode() []byte {
+	buf, err := s.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (s *Subscribe) WriteTo(w io.Writer) (int64, error) {
+	buf, err := s.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -48,8 +67,13 @@ func (s *Subscribe) String() string {
 	return "sub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (s *Suback) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (s *Subscribe) Info() lp.Info {
+	return lp.Info{Qos: 1, MessageID: s.MessageID}
+}
+
+func (s *Suback) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	var qoss []uint32
 	for _, q := range s.Qos {
 		qoss = append(qoss, uint32(q))
@@ -60,11 +84,29 @@ func (s *Suback) WriteTo(w io.Writer) (int64, error) {
 	}
 	pkt, err := proto.Marshal(&suback)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_SUBACK, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (s *Suback) Encode() []byte {
+	buf, err := s.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (s *Suback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := s.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -78,8 +120,13 @@ func (s *Suback) String() string {
 	return "suback"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (s *Suback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: s.MessageID}
+}
+
+func (u *Unsubscribe) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	var subs []*pbx.Subscriber
 	for _, t := range u.Topics {
 		var sub *pbx.Subscriber
@@ -93,11 +140,29 @@ func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
 	}
 	pkt, err := proto.Marshal(&unsub)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_UNSUBSCRIBE, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (u *Unsubscribe) Encode() []byte {
+	buf, err := u.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// Write writes the encoded Packet to the underlying writer.
+func (u *Unsubscribe) WriteTo(w io.Writer) (int64, error) {
+	buf, err := u.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -111,18 +176,41 @@ func (u *Unsubscribe) String() string {
 	return "unsub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (u *Unsuback) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (u *Unsubscribe) Info() lp.Info {
+	return lp.Info{Qos: 1, MessageID: u.MessageID}
+}
+
+func (u *Unsuback) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	unusuback := pbx.Unsuback{
 		MessageID: uint32(u.MessageID),
 	}
 	pkt, err := proto.Marshal(&unusuback)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_UNSUBACK, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (u *Unsuback) Encode() []byte {
+	buf, err := u.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (u *Unsuback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := u.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -134,6 +222,11 @@ func (u *Unsuback) Type() uint8 {
 // String returns the name of operation.
 func (u *Unsuback) String() string {
 	return "unsuback"
+}
+
+// Info returns Qos and MessageID of this packet.
+func (u *Unsuback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: u.MessageID}
 }
 
 func unpackSubscribe(data []byte) Packet {

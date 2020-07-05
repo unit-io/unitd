@@ -1,6 +1,7 @@
 package grpc
 
 import (
+	"bytes"
 	"io"
 
 	"github.com/golang/protobuf/proto"
@@ -16,8 +17,8 @@ type (
 	Pubcomp lp.Pubcomp
 )
 
-// Encode writes the encoded message to the buffer.
-func (p *Publish) WriteTo(w io.Writer) (int64, error) {
+func (p *Publish) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	pub := pbx.Publish{
 		MessageID: uint32(p.MessageID),
 		Topic:     p.Topic,
@@ -25,11 +26,29 @@ func (p *Publish) WriteTo(w io.Writer) (int64, error) {
 	}
 	pkt, err := proto.Marshal(&pub)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_PUBLISH, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (p *Publish) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded message to the buffer.
+func (p *Publish) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -43,18 +62,41 @@ func (p *Publish) String() string {
 	return "pub"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Puback) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Publish) Info() lp.Info {
+	return lp.Info{Qos: p.Qos, MessageID: p.MessageID}
+}
+
+func (p *Puback) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	puback := pbx.Puback{
 		MessageID: uint32(p.MessageID),
 	}
 	pkt, err := proto.Marshal(&puback)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_PUBACK, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (p *Puback) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Puback) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -68,18 +110,41 @@ func (p *Puback) String() string {
 	return "puback"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubrec) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Puback) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
+func (p *Pubrec) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	pubrec := pbx.Pubrec{
 		MessageID: uint32(p.MessageID),
 	}
 	pkt, err := proto.Marshal(&pubrec)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_PUBREC, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubrec) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubrec) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -93,18 +158,41 @@ func (p *Pubrec) String() string {
 	return "pubrec"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubrel) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Pubrec) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
+func (p *Pubrel) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	pubrel := pbx.Pubrel{
 		MessageID: uint32(p.MessageID),
 	}
 	pkt, err := proto.Marshal(&pubrel)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_PUBREL, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubrel) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubrel) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -118,18 +206,41 @@ func (p *Pubrel) String() string {
 	return "pubrel"
 }
 
-// WriteTo writes the encoded Packet to the underlying writer.
-func (p *Pubcomp) WriteTo(w io.Writer) (int64, error) {
+// Info returns Qos and MessageID of this packet.
+func (p *Pubrel) Info() lp.Info {
+	return lp.Info{Qos: p.Qos, MessageID: p.MessageID}
+}
+
+func (p *Pubcomp) encode() (bytes.Buffer, error) {
+	var buf bytes.Buffer
 	pubcomp := pbx.Pubcomp{
 		MessageID: uint32(p.MessageID),
 	}
 	pkt, err := proto.Marshal(&pubcomp)
 	if err != nil {
-		return 0, err
+		return buf, err
 	}
 	fh := FixedHeader{MessageType: pbx.MessageType_PUBCOMP, RemainingLength: uint32(len(pkt))}
-	buf := fh.pack()
-	buf.Write(pkt)
+	buf = fh.pack()
+	_, err = buf.Write(pkt)
+	return buf, err
+}
+
+// Encode encodes message into binary data
+func (p *Pubcomp) Encode() []byte {
+	buf, err := p.encode()
+	if err != nil {
+		return nil
+	}
+	return buf.Bytes()
+}
+
+// WriteTo writes the encoded Packet to the underlying writer.
+func (p *Pubcomp) WriteTo(w io.Writer) (int64, error) {
+	buf, err := p.encode()
+	if err != nil {
+		return 0, err
+	}
 	return buf.WriteTo(w)
 }
 
@@ -143,12 +254,17 @@ func (p *Pubcomp) String() string {
 	return "pubcomp"
 }
 
+// Info returns Qos and MessageID of this packet.
+func (p *Pubcomp) Info() lp.Info {
+	return lp.Info{Qos: 0, MessageID: p.MessageID}
+}
+
 func unpackPublish(data []byte) Packet {
 	var pkt pbx.Publish
 	proto.Unmarshal(data, &pkt)
 
 	fh := lp.FixedHeader{
-		QOS: uint8(pkt.Qos),
+		Qos: uint8(pkt.Qos),
 	}
 
 	return &Publish{
@@ -180,7 +296,7 @@ func unpackPubrel(data []byte) Packet {
 	proto.Unmarshal(data, &pkt)
 
 	fh := lp.FixedHeader{
-		QOS: uint8(pkt.Qos),
+		Qos: uint8(pkt.Qos),
 	}
 
 	return &Pubrel{

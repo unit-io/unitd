@@ -95,20 +95,14 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		c.clientid = clientid
 
 		// Write the ack
-		if c.proto == lp.GRPC {
-			// Acknowledge the subscription
-			ack := grpc.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
-			_, err := ack.WriteTo(c.socket)
-			return err
-		}
-		ack := mqtt.Connack{ReturnCode: returnCode}
-		if _, err := ack.WriteTo(c.socket); err != nil {
-			return err
-		}
-
+		connack := lp.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
+		c.send <- connack
 		// An attempt to subscribe to a topic.
 	case lp.SUBSCRIBE:
 		var packet lp.Subscribe
+
+		// Persist incoming
+		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			sub := pkt.(*grpc.Subscribe)
 			packet = lp.Subscribe(*sub)
@@ -136,20 +130,13 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		if packet.IsForwarded {
 			return nil
 		}
-		if c.proto == lp.GRPC {
-			// Acknowledge the subscription
-			ack := grpc.Suback(ack)
-			_, err := ack.WriteTo(c.socket)
-			return err
-		}
-		suback := mqtt.Suback(ack)
-		if _, err := suback.WriteTo(c.socket); err != nil {
-			return err
-		}
-
+		c.send <- ack
 	// An attempt to unsubscribe from a topic.
 	case lp.UNSUBSCRIBE:
 		var packet lp.Unsubscribe
+
+		// Persist incoming
+		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Unsubscribe(*pkt.(*grpc.Unsubscribe))
 		} else {
@@ -165,34 +152,19 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			}
 		}
 
-		// Acknowledge the unsubscription
-		if c.proto == lp.GRPC {
-			// Acknowledge the subscription
-			ack := grpc.Unsuback(ack)
-			_, err := ack.WriteTo(c.socket)
-			return err
-		}
-		unsuback := mqtt.Unsuback(ack)
-		if _, err := unsuback.WriteTo(c.socket); err != nil {
-			return err
-		}
-
+		c.send <- ack
 	// Ping response, respond appropriately.
 	case lp.PINGREQ:
-		if c.proto == lp.GRPC {
-			ack := grpc.Pingresp{}
-			_, err := ack.WriteTo(c.socket)
-			return err
-		}
-		ack := mqtt.Pingresp{}
-		if _, err := ack.WriteTo(c.socket); err != nil {
-			return err
-		}
-
+		// Persist incoming
+		c.storeInbound(pkt)
+		resp := lp.Pingresp{}
+		c.send <- resp
 	case lp.DISCONNECT:
-
 	case lp.PUBLISH:
 		var packet lp.Publish
+
+		// Persist incoming
+		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Publish(*pkt.(*grpc.Publish))
 		} else {
@@ -202,21 +174,39 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			status = err.Status
 			c.notifyError(err, packet.MessageID)
 		}
+	case lp.PUBACK:
+		// persist outbound
+		c.storeOutbound(pkt)
+	case lp.PUBREC:
+		var packet lp.Pubrel
 
-		// Acknowledge the publication
-		if packet.FixedHeader.QOS > 0 {
-			if c.proto == lp.GRPC {
-				ack := grpc.Puback{MessageID: packet.MessageID}
-				_, err := ack.WriteTo(c.socket)
-				return err
-			}
-			ack := mqtt.Puback{MessageID: packet.MessageID}
-			if _, err := ack.WriteTo(c.socket); err != nil {
-				return err
-			}
+		// Persist incoming
+		c.storeInbound(pkt)
+		if c.proto == lp.GRPC {
+			p := lp.Pubrec(*pkt.(*grpc.Pubrec))
+			packet = lp.Pubrel{MessageID: p.MessageID}
+		} else {
+			p := lp.Pubrec(*pkt.(*mqtt.Pubrec))
+			packet = lp.Pubrel{MessageID: p.MessageID}
 		}
-	}
+		c.send <- packet
+	case lp.PUBREL:
+		var packet lp.Pubcomp
 
+		// persist outbound
+		c.storeInbound(pkt)
+		if c.proto == lp.GRPC {
+			p := lp.Pubrel(*pkt.(*grpc.Pubrel))
+			packet = lp.Pubcomp{MessageID: p.MessageID}
+		} else {
+			p := lp.Pubrel(*pkt.(*grpc.Pubrel))
+			packet = lp.Pubcomp{MessageID: p.MessageID}
+		}
+		c.send <- packet
+	case lp.PUBCOMP:
+		// persist outbound
+		c.storeInbound(pkt)
+	}
 	return nil
 }
 
@@ -349,6 +339,22 @@ func (c *Conn) onPublish(pkt lp.Publish, msgTopic []byte, payload []byte) *types
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, topic, payload)
 
+	// acknowledge a packet
+	return c.ack(pkt)
+}
+
+// ack acknowledges a packet
+func (c *Conn) ack(pkt lp.Publish) *types.Error {
+	switch pkt.FixedHeader.Qos {
+	case 2:
+		pubrec := lp.Pubrec{MessageID: pkt.MessageID}
+		c.send <- pubrec
+	case 1:
+		pubrel := lp.Pubrel{MessageID: pkt.MessageID}
+		c.send <- pubrel
+	case 0:
+		// do nothing, since there is no need to send an ack packet back
+	}
 	return nil
 }
 

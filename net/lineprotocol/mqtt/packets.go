@@ -75,8 +75,8 @@ func (fh *FixedHeader) pack(h *lp.FixedHeader) bytes.Buffer {
 	var firstByte byte
 	firstByte |= fh.MessageType << 4
 	if h != nil {
-		firstByte |= boolToUInt8(h.DUP) << 3
-		firstByte |= h.QOS << 1
+		firstByte |= boolToUInt8(h.Dup) << 3
+		firstByte |= h.Qos << 1
 		firstByte |= boolToUInt8(h.Retain)
 	}
 	buf.WriteByte(firstByte)
@@ -94,8 +94,8 @@ func (fh *FixedHeader) unpack(r io.Reader) error {
 	// Set the header depending on the packet type
 	switch fh.MessageType {
 	case lp.PUBLISH, lp.SUBSCRIBE, lp.UNSUBSCRIBE, lp.PUBREL:
-		fh.DUP = controlByte&0x08 > 0
-		fh.QOS = controlByte & 0x06 >> 1
+		fh.Dup = controlByte&0x08 > 0
+		fh.Qos = controlByte & 0x06 >> 1
 		fh.Retain = controlByte&0x01 > 0
 	}
 

@@ -24,16 +24,20 @@ type Conn struct {
 	sync.Mutex
 	tracked uint32 // Whether the connection was already tracked or not.
 	// protocol - NONE (unset), RPC, GRPC, WEBSOCK, CLUSTER
-	proto    lp.Proto
-	socket   net.Conn
-	send     chan []byte
-	stop     chan interface{}
-	insecure bool           // The insecure flag provided by client will not perform key validation and permissions check on the topic.
-	username string         // The username provided by the client during connect.
-	clientid uid.ID         // The clientid provided by client during connect or new Id assigned.
-	connid   uid.LID        // The locally unique id of the connection.
-	service  *Service       // The service for this connection.
-	subs     *message.Stats // The subscriptions for this connection.
+	proto  lp.Proto
+	socket net.Conn
+	// send     chan []byte
+	send               chan lp.Packet
+	recv               chan lp.Packet
+	pub                chan *lp.Publish
+	stop               chan interface{}
+	insecure           bool           // The insecure flag provided by client will not perform key validation and permissions check on the topic.
+	username           string         // The username provided by the client during connect.
+	message.MessageIds                // local identifier of messages
+	clientid           uid.ID         // The clientid provided by client during connect or new Id assigned.
+	connid             uid.LID        // The locally unique id of the connection.
+	service            *Service       // The service for this connection.
+	subs               *message.Stats // The subscriptions for this connection.
 	// Reference to the cluster node where the connection has originated. Set only for cluster RPC sessions
 	clnode *ClusterNode
 	// Cluster nodes to inform when disconnected
@@ -46,13 +50,16 @@ type Conn struct {
 
 func (s *Service) newConn(t net.Conn, proto lp.Proto) *Conn {
 	c := &Conn{
-		proto:   proto,
-		socket:  t,
-		send:    make(chan []byte, 1),      // buffered
-		stop:    make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
-		connid:  uid.NewLID(),
-		service: s,
-		subs:    message.NewStats(),
+		proto:      proto,
+		socket:     t,
+		MessageIds: message.NewMessageIds(),
+		send:       make(chan lp.Packet, 1), // buffered
+		recv:       make(chan lp.Packet),
+		pub:        make(chan *lp.Publish),
+		stop:       make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
+		connid:     uid.NewLID(),
+		service:    s,
+		subs:       message.NewStats(),
 		// Close
 		closeC: make(chan struct{}),
 	}
@@ -67,14 +74,17 @@ func (s *Service) newConn(t net.Conn, proto lp.Proto) *Conn {
 // newRpcConn a new connection in cluster
 func (s *Service) newRpcConn(conn interface{}, connid uid.LID, clientid uid.ID) *Conn {
 	c := &Conn{
-		connid:   connid,
-		clientid: clientid,
-		send:     make(chan []byte),         // buffered
-		stop:     make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
-		service:  s,
-		subs:     message.NewStats(),
-		clnode:   conn.(*ClusterNode),
-		nodes:    make(map[string]bool, 3),
+		connid:     connid,
+		clientid:   clientid,
+		MessageIds: message.NewMessageIds(),
+		send:       make(chan lp.Packet, 1), // buffered
+		recv:       make(chan lp.Packet),
+		pub:        make(chan *lp.Publish),
+		stop:       make(chan interface{}, 1), // Buffered by 1 just to make it non-blocking
+		service:    s,
+		subs:       message.NewStats(),
+		clnode:     conn.(*ClusterNode),
+		nodes:      make(map[string]bool, 3),
 	}
 
 	Globals.ConnCache.Add(c)
@@ -92,26 +102,23 @@ func (c *Conn) Type() message.SubscriberType {
 }
 
 // Send forwards the message to the underlying client.
-func (c *Conn) SendMessage(m *message.Message) error {
-	if c.proto == lp.GRPC {
-		packet := grpc.Publish{
-			Topic:   m.Topic,
-			Payload: m.Payload,
-		}
-		_, err := packet.WriteTo(c.socket)
-		return err
-	}
-
+func (c *Conn) SendMessage(m *message.Message) bool {
 	packet := lp.Publish{
 		FixedHeader: lp.FixedHeader{
-			QOS: 0,
+			Qos: 0, // TODO when we'll support more QoS
 		},
 		Topic:   m.Topic,   // The topic for this message.
 		Payload: m.Payload, // The payload for this message.
 	}
-	p := mqtt.Publish(packet)
-	_, err := p.WriteTo(c.socket)
-	return err
+
+	// Acknowledge the publication
+	select {
+	case c.pub <- &packet:
+	case <-time.After(time.Microsecond * 50):
+		return false
+	}
+
+	return true
 }
 
 // Send forwards raw bytes to the underlying client.
@@ -125,9 +132,10 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 	select {
 	case <-c.closeC:
 		return false
-	case c.send <- buf:
 	case <-time.After(time.Microsecond * 50):
 		return false
+	default:
+		c.socket.Write(buf)
 	}
 
 	return true
@@ -143,12 +151,101 @@ func (c *Conn) writeLoop(ctx context.Context) {
 			return
 		case <-c.closeC:
 			return
+		case msg, ok := <-c.pub:
+			if !ok {
+				// Channel closed.
+				return
+			}
+			if c.proto == lp.GRPC {
+				packet := grpc.Publish(*msg)
+				packet.WriteTo(c.socket)
+			} else {
+				packet := mqtt.Publish(*msg)
+				packet.WriteTo(c.socket)
+			}
 		case msg, ok := <-c.send:
 			if !ok {
 				// Channel closed.
 				return
 			}
-			c.socket.Write(msg)
+			switch m := msg.(type) {
+			case lp.Pingresp:
+				if c.proto == lp.GRPC {
+					packet := grpc.Pingresp(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Pingresp(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Connack:
+				if c.proto == lp.GRPC {
+					packet := grpc.Connack(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Connack(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Suback:
+				if c.proto == lp.GRPC {
+					packet := grpc.Suback(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Suback(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Unsuback:
+				if c.proto == lp.GRPC {
+					packet := grpc.Unsuback(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Unsuback(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Publish:
+				if c.proto == lp.GRPC {
+					packet := grpc.Publish(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Publish(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Puback:
+				// persist outbound
+				c.storeOutbound(m)
+				if c.proto == lp.GRPC {
+					packet := grpc.Puback(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Puback(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Pubrec:
+				if c.proto == lp.GRPC {
+					packet := grpc.Pubrec(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Pubrec(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Pubrel:
+				// persist outbound
+				c.storeOutbound(m)
+				if c.proto == lp.GRPC {
+					packet := grpc.Pubrel(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Pubrel(m)
+					packet.WriteTo(c.socket)
+				}
+			case lp.Pubcomp:
+				if c.proto == lp.GRPC {
+					packet := grpc.Pubcomp(m)
+					packet.WriteTo(c.socket)
+				} else {
+					packet := mqtt.Pubcomp(m)
+					packet.WriteTo(c.socket)
+				}
+			}
 		}
 	}
 }
@@ -228,7 +325,7 @@ func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (e
 	for _, connid := range conns {
 		sub := Globals.ConnCache.Get(connid)
 		if sub != nil {
-			if err := sub.SendMessage(m); err != nil {
+			if !sub.SendMessage(m) {
 				log.ErrLogger.Err(err).Str("context", "conn.publish")
 			}
 			scount++
@@ -268,6 +365,24 @@ func (c *Conn) unsubAll() {
 	for _, stat := range c.subs.All() {
 		store.Connection.Delete(c.clientid.Contract(), stat.Topic, stat.ID)
 	}
+}
+
+func (c *Conn) inboundID(id uint32) message.MID {
+	return message.MID(uint32(c.connid) - id)
+}
+
+func (c *Conn) outboundID(mid message.MID) (id uint32) {
+	return uint32(c.connid) - (uint32(mid))
+}
+
+func (c *Conn) storeInbound(m lp.Packet) {
+	k := uint64(c.inboundID(uint32(m.Info().MessageID)))<<32 + uint64(c.clientid.Contract())
+	store.Log.PersistInbound(k, m)
+}
+
+func (c *Conn) storeOutbound(m lp.Packet) {
+	k := uint64(m.Info().MessageID)<<32 + uint64(c.clientid.Contract())
+	store.Log.PersistOutbound(k, m)
 }
 
 // Close terminates the connection.

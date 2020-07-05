@@ -10,7 +10,9 @@ type Packet interface {
 	fmt.Stringer
 
 	Type() uint8
+	Encode() []byte
 	WriteTo(io.Writer) (int64, error)
+	Info() Info
 }
 
 const (
@@ -30,12 +32,18 @@ const (
 	DISCONNECT
 )
 
+// Info returns Qos and MessageID by the Info() function called on the Packet
+type Info struct {
+	Qos       uint8
+	MessageID uint16
+}
+
 // FixedHeader
 type FixedHeader struct {
 	MessageType     byte
-	DUP             bool
+	Dup             bool
 	Retain          bool
-	QOS             uint8
+	Qos             uint8
 	RemainingLength int
 }
 
@@ -75,14 +83,17 @@ type Connack struct {
 
 //Pingreq is a keepalive
 type Pingreq struct {
+	Packet
 }
 
 //Pingresp is for saying "hey, the server is alive"
 type Pingresp struct {
+	Packet
 }
 
 //Disconnect is to signal you want to cease communications with the server
 type Disconnect struct {
+	Packet
 }
 
 // Publish represents a publish packet.
