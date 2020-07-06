@@ -86,12 +86,12 @@ type ClusterReq struct {
 	// Cluster is desynchronized.
 	Signature string
 
-	PktSub   *lp.Subscribe
-	PktPub   *lp.Publish
-	PktUnsub *lp.Unsubscribe
+	MsgSub   *lp.Subscribe
+	MsgPub   *lp.Publish
+	MsgUnsub *lp.Unsubscribe
 	Topic    *security.Topic
 	Type     uint8
-	Msg      *message.Message
+	Message  *message.Message
 
 	// Originating session
 	Conn *ClusterSess
@@ -102,12 +102,12 @@ type ClusterReq struct {
 // ClusterResp is a Master to Proxy response message.
 type ClusterResp struct {
 	Type     uint8
-	PktSub   *lp.Subscribe
-	PktPub   *lp.Publish
-	PktUnsub *lp.Unsubscribe
-	Pkt      []byte
+	MsgSub   *lp.Subscribe
+	MsgPub   *lp.Publish
+	MsgUnsub *lp.Unsubscribe
+	Msg      []byte
 	Topic    *security.Topic
-	Msg      *message.Message
+	Message  *message.Message
 	// Connection ID to forward message to, if any.
 	FromConnID uid.LID
 }
@@ -299,11 +299,11 @@ func (c *Cluster) Master(msg *ClusterReq, rejected *bool) error {
 
 		switch msg.Type {
 		case message.SUBSCRIBE:
-			conn.handler(msg.PktSub)
+			conn.handler(msg.MsgSub)
 		case message.UNSUBSCRIBE:
-			conn.handler(msg.PktUnsub)
+			conn.handler(msg.MsgUnsub)
 		case message.PUBLISH:
-			conn.handler(msg.PktPub)
+			conn.handler(msg.MsgPub)
 		}
 	} else {
 		// Reject the request: wrong signature, cluster is out of sync.
@@ -314,18 +314,18 @@ func (c *Cluster) Master(msg *ClusterReq, rejected *bool) error {
 }
 
 // Dispatch receives messages from the master node addressed to a specific local connection.
-func (Cluster) Proxy(msg *ClusterResp, unused *bool) error {
-	log.Info("cluster.Proxy", "response from Master for connection "+string(msg.FromConnID))
+func (Cluster) Proxy(resp *ClusterResp, unused *bool) error {
+	log.Info("cluster.Proxy", "response from Master for connection "+string(resp.FromConnID))
 
 	// This cluster member received a response from topic owner to be forwarded to a connection
 	// Find appropriate connection, send the message to it
 
-	if conn := Globals.ConnCache.Get(msg.FromConnID); conn != nil {
-		if !conn.SendRawBytes(msg.Pkt) {
+	if conn := Globals.ConnCache.Get(resp.FromConnID); conn != nil {
+		if !conn.SendRawBytes(resp.Msg) {
 			log.Error("cluster.Proxy", "Proxy: timeout")
 		}
 	} else {
-		log.ErrLogger.Error().Str("context", "cluster.Proxy").Uint64("connid", uint64(msg.FromConnID)).Msg("master response for unknown session")
+		log.ErrLogger.Error().Str("context", "cluster.Proxy").Uint64("connid", uint64(resp.FromConnID)).Msg("master response for unknown session")
 	}
 
 	return nil
@@ -356,7 +356,7 @@ func (c *Cluster) isRemoteContract(contract string) bool {
 }
 
 // Forward client message to the Master (cluster node which owns the topic)
-func (c *Cluster) routeToContract(pkt lp.Packet, topic *security.Topic, msgType uint8, msg *message.Message, conn *Conn) error {
+func (c *Cluster) routeToContract(msg lp.Packet, topic *security.Topic, msgType uint8, m *message.Message, conn *Conn) error {
 	// Find the cluster node which owns the topic, then forward to it.
 	n := c.nodeForContract(string(conn.clientid.Contract()))
 	if n == nil {
@@ -369,31 +369,31 @@ func (c *Cluster) routeToContract(pkt lp.Packet, topic *security.Topic, msgType 
 	}
 	conn.nodes[n.name] = true
 
-	// var pktsub,pktpub,pktunsub lp.Packet
-	var pktsub *lp.Subscribe
-	var pktpub *lp.Publish
-	var pktunsub *lp.Unsubscribe
+	// var msgSub,msgPub,msgUnsub lp.Packet
+	var msgSub *lp.Subscribe
+	var msgPub *lp.Publish
+	var msgUnsub *lp.Unsubscribe
 	switch msgType {
 	case message.SUBSCRIBE:
-		pktsub = pkt.(*lp.Subscribe)
-		pktsub.IsForwarded = true
+		msgSub = msg.(*lp.Subscribe)
+		msgSub.IsForwarded = true
 	case message.UNSUBSCRIBE:
-		pktunsub = pkt.(*lp.Unsubscribe)
-		pktunsub.IsForwarded = true
+		msgUnsub = msg.(*lp.Unsubscribe)
+		msgUnsub.IsForwarded = true
 	case message.PUBLISH:
-		pktpub = pkt.(*lp.Publish)
-		pktpub.IsForwarded = true
+		msgPub = msg.(*lp.Publish)
+		msgPub.IsForwarded = true
 	}
 	return n.forward(
 		&ClusterReq{
 			Node:      c.thisNodeName,
 			Signature: c.ring.Signature(),
-			PktSub:    pktsub,
-			PktUnsub:  pktunsub,
-			PktPub:    pktpub,
+			MsgSub:    msgSub,
+			MsgUnsub:  msgUnsub,
+			MsgPub:    msgPub,
 			Topic:     topic,
 			Type:      msgType,
-			Msg:       msg,
+			Message:   m,
 			Conn: &ClusterSess{
 				//RemoteAddr: conn.(),
 				ConnID:   conn.connid,
@@ -519,14 +519,14 @@ func (c *Conn) rpcWriteLoop() {
 			}
 			// The error is returned if the remote node is down. Which means the remote
 			// session is also disconnected.
-			if err := c.clnode.call("Cluster.Proxy", &ClusterResp{Pkt: m, FromConnID: c.connid}, &unused); err != nil {
+			if err := c.clnode.call("Cluster.Proxy", &ClusterResp{Msg: m, FromConnID: c.connid}, &unused); err != nil {
 				log.Error("conn.writeRPC", err.Error())
 				return
 			}
 		case msg := <-c.stop:
 			// Shutdown is requested, don't care if the message is delivered
 			if msg != nil {
-				c.clnode.call("Cluster.Proxy", &ClusterResp{Pkt: msg.([]byte), FromConnID: c.connid}, &unused)
+				c.clnode.call("Cluster.Proxy", &ClusterResp{Msg: msg.([]byte), FromConnID: c.connid}, &unused)
 			}
 			return
 		}

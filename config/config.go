@@ -39,7 +39,7 @@ type Config struct {
 	Cluster json.RawMessage `json:"cluster_config"`
 
 	// Config for database store
-	Store json.RawMessage `json:"store_config"`
+	StoreConfig json.RawMessage `json:"store_config"`
 
 	// Config to expose runtime stats
 	VarzPath string `json:"varz_path"`
@@ -68,4 +68,19 @@ func (c *Config) Encryption(encrConfig json.RawMessage) EncryptionConfig {
 	}
 
 	return encr
+}
+
+// StoreConfig represents the configuration for the store.
+type StoreConfig struct {
+	// clean cleans logs to start clean and reset message store on service restart
+	Clean bool `json:"clean_logs"`
+}
+
+func (c *Config) Store(storeConfig json.RawMessage) StoreConfig {
+	var store StoreConfig
+	if err := json.Unmarshal(storeConfig, &store); err != nil {
+		log.Fatal("config.Encryption", "error in parsing encryption config", err)
+	}
+
+	return store
 }

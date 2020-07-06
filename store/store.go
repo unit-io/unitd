@@ -16,7 +16,6 @@ import (
 	lp "github.com/unit-io/unitd/net/lineprotocol"
 	"github.com/unit-io/unitd/net/lineprotocol/grpc"
 	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
-	"github.com/unit-io/unitd/pkg/uid"
 )
 
 const (
@@ -117,37 +116,35 @@ func RegisterAdapter(name string, a adapter.Adapter) {
 	adp = a
 }
 
-// ConnectionStore is a Conection struct to hold methods for persistence mapping for the Connect LId.
+// SubscriptionStore is a Subscription struct to hold methods for persistence mapping for the subscription.
 // Note, do not use same contract as messagestore
-type ConnectionStore struct{}
+type SubscriptionStore struct{}
 
 // Message is the ancor for storing/retrieving Message objects
-var Connection ConnectionStore
+var Subscription SubscriptionStore
 
-func (c *ConnectionStore) Put(contract uint32, topic []byte, messageId []byte, connId uid.LID) error {
-	payload := make([]byte, 8)
-	binary.LittleEndian.PutUint64(payload[:8], uint64(connId))
-	return adp.PutWithID(contract^connStoreId, topic, messageId, payload)
+func (c *SubscriptionStore) Put(contract uint32, messageId, topic, payload []byte) error {
+	return adp.PutWithID(contract^connStoreId, messageId, topic, payload)
 }
 
-func (c *ConnectionStore) Get(contract uint32, topic []byte) (matches []uid.LID, err error) {
+func (c *SubscriptionStore) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
 	resp, err := adp.Get(contract^connStoreId, topic)
 	for _, payload := range resp {
 		if payload == nil {
 			continue
 		}
-		matches = append(matches, uid.LID(binary.LittleEndian.Uint64(payload[:])))
+		matches = append(matches, payload)
 	}
 
 	return matches, err
 }
 
-func (c *ConnectionStore) NewID() ([]byte, error) {
+func (c *SubscriptionStore) NewID() ([]byte, error) {
 	return adp.NewID()
 }
 
-func (c *ConnectionStore) Delete(contract uint32, topic []byte, messageId []byte) error {
-	return adp.Delete(contract^connStoreId, topic, messageId)
+func (c *SubscriptionStore) Delete(contract uint32, messageId, topic []byte) error {
+	return adp.Delete(contract^connStoreId, messageId, topic)
 }
 
 // MessageStore is a Message struct to hold methods for persistence mapping for the Message object.
@@ -171,6 +168,12 @@ func (m *MessageStore) Get(contract uint32, topic []byte) (matches []message.Mes
 	}
 
 	return matches, err
+}
+
+type storeConfigType struct {
+	Dir           string `json:"dir,omitempty"`
+	Size          int64  `json:"mem_size"`
+	LogReleaseDur string `json:"log_release_duration"`
 }
 
 type (
@@ -224,17 +227,31 @@ func recovery(path string, size int64, reset bool) error {
 }
 
 // InitMessageStore init message store and start recovery if reset flag is not set.
-func InitMessageStore(path string, size int64, dur time.Duration, reset bool) error {
+func InitMessageStore(jsonconf string, reset bool) error {
+	var config configType
+	if err := json.Unmarshal([]byte(jsonconf), &config); err != nil {
+		return errors.New("store: failed to parse config: " + err.Error() + "(" + jsonconf + ")")
+	}
+
+	var storeConfig storeConfigType
+	if err := json.Unmarshal(config.Adapters[adp.GetName()], &storeConfig); err != nil {
+		return errors.New("unitdb adapter failed to parse config: " + err.Error())
+	}
+
 	Log = MessageLog{
 		writeLockC: make(chan struct{}, 1),
-		bufPool:    bpool.NewBufferPool(int64(size), nil),
+		bufPool:    bpool.NewBufferPool(storeConfig.Size, nil),
 		tinyBatch:  &tinyBatch{},
 	}
 	Log.tinyBatch.buffer = Log.bufPool.Get()
-	if err := recovery(path, size, reset); err != nil {
+	if err := recovery(storeConfig.Dir, storeConfig.Size, reset); err != nil {
 		return err
 	}
 	Log.tinyBatchLoop(15 * time.Millisecond)
+	dur, err := time.ParseDuration(storeConfig.LogReleaseDur)
+	if err != nil {
+		return err
+	}
 	logReleaser(dur)
 	return nil
 }

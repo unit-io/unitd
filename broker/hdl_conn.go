@@ -2,6 +2,7 @@ package broker
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"time"
 
@@ -62,7 +63,7 @@ func (c *Conn) readLoop() error {
 	}
 }
 
-// handle handles packet receive.
+// handle handles inbound packets.
 func (c *Conn) handler(pkt lp.Packet) error {
 	start := time.Now()
 	var status int = 200
@@ -70,6 +71,9 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		c.service.meter.ConnTimeSeries.AddTime(time.Since(start))
 		c.service.stats.PrecisionTiming("conn_time_ns", time.Since(start), stats.IntTag("status", status))
 	}()
+
+	// Persist incoming
+	c.storeInbound(pkt)
 
 	switch pkt.Type() {
 	// An attempt to connect.
@@ -94,6 +98,13 @@ func (c *Conn) handler(pkt lp.Packet) error {
 
 		c.clientid = clientid
 
+		// Take care of any messages in the store
+		if !packet.CleanSessFlag {
+			c.resume()
+		} else {
+			// contract is used as blockId and key prefix
+			store.Log.Reset(c.clientid.Contract())
+		}
 		// Write the ack
 		connack := lp.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
 		c.send <- connack
@@ -101,11 +112,8 @@ func (c *Conn) handler(pkt lp.Packet) error {
 	case lp.SUBSCRIBE:
 		var packet lp.Subscribe
 
-		// Persist incoming
-		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
-			sub := pkt.(*grpc.Subscribe)
-			packet = lp.Subscribe(*sub)
+			packet = lp.Subscribe(*pkt.(*grpc.Subscribe))
 		} else {
 			packet = lp.Subscribe(*pkt.(*mqtt.Subscribe))
 		}
@@ -134,9 +142,6 @@ func (c *Conn) handler(pkt lp.Packet) error {
 	// An attempt to unsubscribe from a topic.
 	case lp.UNSUBSCRIBE:
 		var packet lp.Unsubscribe
-
-		// Persist incoming
-		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Unsubscribe(*pkt.(*grpc.Unsubscribe))
 		} else {
@@ -155,16 +160,11 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		c.send <- ack
 	// Ping response, respond appropriately.
 	case lp.PINGREQ:
-		// Persist incoming
-		c.storeInbound(pkt)
 		resp := lp.Pingresp{}
 		c.send <- resp
 	case lp.DISCONNECT:
 	case lp.PUBLISH:
 		var packet lp.Publish
-
-		// Persist incoming
-		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			packet = lp.Publish(*pkt.(*grpc.Publish))
 		} else {
@@ -174,14 +174,8 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			status = err.Status
 			c.notifyError(err, packet.MessageID)
 		}
-	case lp.PUBACK:
-		// persist outbound
-		c.storeOutbound(pkt)
 	case lp.PUBREC:
 		var packet lp.Pubrel
-
-		// Persist incoming
-		c.storeInbound(pkt)
 		if c.proto == lp.GRPC {
 			p := lp.Pubrec(*pkt.(*grpc.Pubrec))
 			packet = lp.Pubrel{MessageID: p.MessageID}
@@ -194,7 +188,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		var packet lp.Pubcomp
 
 		// persist outbound
-		c.storeInbound(pkt)
+		c.storeOutbound(pkt)
 		if c.proto == lp.GRPC {
 			p := lp.Pubrel(*pkt.(*grpc.Pubrel))
 			packet = lp.Pubcomp{MessageID: p.MessageID}
@@ -204,10 +198,101 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		}
 		c.send <- packet
 	case lp.PUBCOMP:
-		// persist outbound
-		c.storeInbound(pkt)
 	}
 	return nil
+}
+
+// writeLook handles outbound packets
+func (c *Conn) writeLoop(ctx context.Context) {
+	c.closeW.Add(1)
+	defer c.closeW.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-c.closeC:
+			return
+		case msg, ok := <-c.pub:
+			if !ok {
+				// Channel closed.
+				return
+			}
+			if c.proto == lp.GRPC {
+				packet := grpc.Publish(*msg)
+				packet.WriteTo(c.socket)
+			} else {
+				packet := mqtt.Publish(*msg)
+				packet.WriteTo(c.socket)
+			}
+		case msg, ok := <-c.send:
+			if !ok {
+				// Channel closed.
+				return
+			}
+			if c.proto == lp.GRPC {
+				switch m := msg.(type) {
+				case lp.Pingresp:
+					packet := grpc.Pingresp(m)
+					packet.WriteTo(c.socket)
+				case lp.Connack:
+					packet := grpc.Connack(m)
+					packet.WriteTo(c.socket)
+				case lp.Suback:
+					packet := grpc.Suback(m)
+					packet.WriteTo(c.socket)
+				case lp.Unsuback:
+					packet := grpc.Unsuback(m)
+					packet.WriteTo(c.socket)
+				case lp.Publish:
+					packet := grpc.Publish(m)
+					packet.WriteTo(c.socket)
+				case lp.Puback:
+					packet := grpc.Puback(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubrec:
+					packet := grpc.Pubrec(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubrel:
+					packet := grpc.Pubrel(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubcomp:
+					packet := grpc.Pubcomp(m)
+					packet.WriteTo(c.socket)
+				}
+			} else {
+				switch m := msg.(type) {
+				case lp.Pingresp:
+					packet := mqtt.Pingresp(m)
+					packet.WriteTo(c.socket)
+				case lp.Connack:
+					packet := mqtt.Connack(m)
+					packet.WriteTo(c.socket)
+				case lp.Suback:
+					packet := mqtt.Suback(m)
+					packet.WriteTo(c.socket)
+				case lp.Unsuback:
+					packet := mqtt.Unsuback(m)
+					packet.WriteTo(c.socket)
+				case lp.Publish:
+					packet := mqtt.Publish(m)
+					packet.WriteTo(c.socket)
+				case lp.Puback:
+					packet := mqtt.Puback(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubrec:
+					packet := mqtt.Pubrec(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubrel:
+					packet := mqtt.Pubrel(m)
+					packet.WriteTo(c.socket)
+				case lp.Pubcomp:
+					packet := mqtt.Pubcomp(m)
+					packet.WriteTo(c.socket)
+				}
+			}
+		}
+	}
 }
 
 // onConnect is a handler for Connect events.
@@ -350,12 +435,44 @@ func (c *Conn) ack(pkt lp.Publish) *types.Error {
 		pubrec := lp.Pubrec{MessageID: pkt.MessageID}
 		c.send <- pubrec
 	case 1:
-		pubrel := lp.Pubrel{MessageID: pkt.MessageID}
-		c.send <- pubrel
+		puback := lp.Puback{MessageID: pkt.MessageID}
+		// persist outbound
+		c.storeOutbound(puback)
+		c.send <- puback
 	case 0:
 		// do nothing, since there is no need to send an ack packet back
 	}
 	return nil
+}
+
+// Load all stored messages and resend them to ensure QOS > 1,2 even after an application crash.
+func (c *Conn) resume() {
+	// contract is used as blockId and key prefix
+	keys := store.Log.Keys(c.clientid.Contract())
+	for _, k := range keys {
+		msg := store.Log.Get(c.proto, k)
+		if msg == nil {
+			continue
+		}
+		// isKeyOutbound
+		if (k & (1 << 4)) == 0 {
+			switch msg.(type) {
+			case *lp.Pubrel:
+				c.send <- msg
+			case *lp.Publish:
+				c.send <- msg
+			default:
+				store.Log.Delete(k)
+			}
+		} else {
+			switch msg.(type) {
+			case *lp.Pubrel:
+				c.recv <- msg
+			default:
+				store.Log.Delete(k)
+			}
+		}
+	}
 }
 
 func (c *Conn) onSecureRequest(topic *security.Topic) (bool, *types.Error) {

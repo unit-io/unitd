@@ -1,7 +1,7 @@
 package broker
 
 import (
-	"context"
+	"encoding/binary"
 	"encoding/json"
 	"net"
 	"runtime/debug"
@@ -12,8 +12,6 @@ import (
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
-	"github.com/unit-io/unitd/net/lineprotocol/grpc"
-	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
 	"github.com/unit-io/unitd/store"
@@ -103,9 +101,9 @@ func (c *Conn) Type() message.SubscriberType {
 
 // Send forwards the message to the underlying client.
 func (c *Conn) SendMessage(m *message.Message) bool {
-	packet := lp.Publish{
+	msg := lp.Publish{
 		FixedHeader: lp.FixedHeader{
-			Qos: 0, // TODO when we'll support more QoS
+			Qos: m.Qos,
 		},
 		Topic:   m.Topic,   // The topic for this message.
 		Payload: m.Payload, // The payload for this message.
@@ -113,7 +111,7 @@ func (c *Conn) SendMessage(m *message.Message) bool {
 
 	// Acknowledge the publication
 	select {
-	case c.pub <- &packet:
+	case c.pub <- &msg:
 	case <-time.After(time.Microsecond * 50):
 		return false
 	}
@@ -141,136 +139,30 @@ func (c *Conn) SendRawBytes(buf []byte) bool {
 	return true
 }
 
-func (c *Conn) writeLoop(ctx context.Context) {
-	c.closeW.Add(1)
-	defer c.closeW.Done()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-c.closeC:
-			return
-		case msg, ok := <-c.pub:
-			if !ok {
-				// Channel closed.
-				return
-			}
-			if c.proto == lp.GRPC {
-				packet := grpc.Publish(*msg)
-				packet.WriteTo(c.socket)
-			} else {
-				packet := mqtt.Publish(*msg)
-				packet.WriteTo(c.socket)
-			}
-		case msg, ok := <-c.send:
-			if !ok {
-				// Channel closed.
-				return
-			}
-			switch m := msg.(type) {
-			case lp.Pingresp:
-				if c.proto == lp.GRPC {
-					packet := grpc.Pingresp(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Pingresp(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Connack:
-				if c.proto == lp.GRPC {
-					packet := grpc.Connack(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Connack(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Suback:
-				if c.proto == lp.GRPC {
-					packet := grpc.Suback(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Suback(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Unsuback:
-				if c.proto == lp.GRPC {
-					packet := grpc.Unsuback(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Unsuback(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Publish:
-				if c.proto == lp.GRPC {
-					packet := grpc.Publish(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Publish(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Puback:
-				// persist outbound
-				c.storeOutbound(m)
-				if c.proto == lp.GRPC {
-					packet := grpc.Puback(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Puback(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Pubrec:
-				if c.proto == lp.GRPC {
-					packet := grpc.Pubrec(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Pubrec(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Pubrel:
-				// persist outbound
-				c.storeOutbound(m)
-				if c.proto == lp.GRPC {
-					packet := grpc.Pubrel(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Pubrel(m)
-					packet.WriteTo(c.socket)
-				}
-			case lp.Pubcomp:
-				if c.proto == lp.GRPC {
-					packet := grpc.Pubcomp(m)
-					packet.WriteTo(c.socket)
-				} else {
-					packet := mqtt.Pubcomp(m)
-					packet.WriteTo(c.socket)
-				}
-			}
-		}
-	}
-}
-
 // Subscribe subscribes to a particular topic.
-func (c *Conn) subscribe(pkt lp.Subscribe, topic *security.Topic) (err error) {
+func (c *Conn) subscribe(msg lp.Subscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
 	key := string(topic.Key)
-	if exists := c.subs.Exist(key); exists && !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
+	if exists := c.subs.Exist(key); exists && !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The contract is handled by a remote node. Forward message to it.
-		if err := Globals.Cluster.routeToContract(pkt, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
+		if err := Globals.Cluster.routeToContract(msg, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.subscribe").Int64("connid", int64(c.connid)).Msg("unable to subscribe to remote topic")
 			return err
 		}
 		// Add the subscription to Counters
 	} else {
-		messageId, err := store.Connection.NewID()
+		messageId, err := store.Subscription.NewID()
 		if err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.subscribe")
 		}
 		if first := c.subs.Increment(topic.Topic[:topic.Size], key, messageId); first {
 			// Subscribe the subscriber
-			if err = store.Connection.Put(c.clientid.Contract(), topic.Topic, messageId, c.connid); err != nil {
+			payload := make([]byte, 8)
+			binary.LittleEndian.PutUint32(payload[:4], uint32(c.connid))
+			binary.LittleEndian.PutUint32(payload[4:], uint32(msg.Qos))
+			if err = store.Subscription.Put(c.clientid.Contract(), messageId, topic.Topic, payload); err != nil {
 				log.ErrLogger.Err(err).Str("context", "conn.subscribe").Str("topic", string(topic.Topic[:topic.Size])).Int64("connid", int64(c.connid)).Msg("unable to subscribe to topic") // Unable to subscribe
 				return err
 			}
@@ -282,7 +174,7 @@ func (c *Conn) subscribe(pkt lp.Subscribe, topic *security.Topic) (err error) {
 }
 
 // Unsubscribe unsubscribes this client from a particular topic.
-func (c *Conn) unsubscribe(pkt lp.Unsubscribe, topic *security.Topic) (err error) {
+func (c *Conn) unsubscribe(msg lp.Unsubscribe, topic *security.Topic) (err error) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -290,16 +182,16 @@ func (c *Conn) unsubscribe(pkt lp.Unsubscribe, topic *security.Topic) (err error
 	// Remove the subscription from stats and if there's no more subscriptions, notify everyone.
 	if last, messageId := c.subs.Decrement(topic.Topic[:topic.Size], key); last {
 		// Unsubscribe the subscriber
-		if err = store.Connection.Delete(c.clientid.Contract(), topic.Topic[:topic.Size], messageId); err != nil {
+		if err = store.Subscription.Delete(c.clientid.Contract(), messageId, topic.Topic[:topic.Size]); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.unsubscribe").Str("topic", string(topic.Topic[:topic.Size])).Int64("connid", int64(c.connid)).Msg("unable to unsubscribe to topic") // Unable to subscribe
 			return err
 		}
 		// Decrement the subscription counter
 		c.service.meter.Subscriptions.Dec(1)
 	}
-	if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
+	if !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The topic is handled by a remote node. Forward message to it.
-		if err := Globals.Cluster.routeToContract(pkt, topic, message.UNSUBSCRIBE, &message.Message{}, c); err != nil {
+		if err := Globals.Cluster.routeToContract(msg, topic, message.UNSUBSCRIBE, &message.Message{}, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.unsubscribe").Int64("connid", int64(c.connid)).Msg("unable to unsubscribe to remote topic")
 			return err
 		}
@@ -308,13 +200,13 @@ func (c *Conn) unsubscribe(pkt lp.Unsubscribe, topic *security.Topic) (err error
 }
 
 // Publish publishes a message to everyone and returns the number of outgoing bytes written.
-func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (err error) {
+func (c *Conn) publish(msg lp.Publish, topic *security.Topic, payload []byte) (err error) {
 	c.service.meter.InMsgs.Inc(1)
 	c.service.meter.InBytes.Inc(int64(len(payload)))
 	// subsciption count
 	scount := 0
 
-	conns, err := store.Connection.Get(c.clientid.Contract(), topic.Topic)
+	conns, err := store.Subscription.Get(c.clientid.Contract(), topic.Topic)
 	if err != nil {
 		log.ErrLogger.Err(err).Str("context", "conn.publish")
 	}
@@ -323,8 +215,11 @@ func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (e
 		Payload: payload,
 	}
 	for _, connid := range conns {
-		sub := Globals.ConnCache.Get(connid)
+		lid := uid.LID(binary.LittleEndian.Uint32(connid[:4]))
+		qos := binary.LittleEndian.Uint32(connid[4:])
+		sub := Globals.ConnCache.Get(lid)
 		if sub != nil {
+			m.Qos = uint8(qos)
 			if !sub.SendMessage(m) {
 				log.ErrLogger.Err(err).Str("context", "conn.publish")
 			}
@@ -334,8 +229,8 @@ func (c *Conn) publish(pkt lp.Publish, topic *security.Topic, payload []byte) (e
 	c.service.meter.OutMsgs.Inc(int64(scount))
 	c.service.meter.OutBytes.Inc(m.Size() * int64(scount))
 
-	if !pkt.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
-		if err = Globals.Cluster.routeToContract(pkt, topic, message.PUBLISH, m, c); err != nil {
+	if !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
+		if err = Globals.Cluster.routeToContract(msg, topic, message.PUBLISH, m, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.publish").Int64("connid", int64(c.connid)).Msg("unable to publish to remote topic")
 		}
 	}
@@ -363,7 +258,7 @@ func (c *Conn) notifyError(err *types.Error, messageID uint16) {
 
 func (c *Conn) unsubAll() {
 	for _, stat := range c.subs.All() {
-		store.Connection.Delete(c.clientid.Contract(), stat.Topic, stat.ID)
+		store.Subscription.Delete(c.clientid.Contract(), stat.ID, stat.Topic)
 	}
 }
 
@@ -376,13 +271,17 @@ func (c *Conn) outboundID(mid message.MID) (id uint32) {
 }
 
 func (c *Conn) storeInbound(m lp.Packet) {
-	k := uint64(c.inboundID(uint32(m.Info().MessageID)))<<32 + uint64(c.clientid.Contract())
-	store.Log.PersistInbound(k, m)
+	if c.clientid != nil {
+		k := uint64(c.inboundID(uint32(m.Info().MessageID)))<<32 + uint64(c.clientid.Contract())
+		store.Log.PersistInbound(k, m)
+	}
 }
 
 func (c *Conn) storeOutbound(m lp.Packet) {
-	k := uint64(m.Info().MessageID)<<32 + uint64(c.clientid.Contract())
-	store.Log.PersistOutbound(k, m)
+	if c.clientid != nil {
+		k := uint64(m.Info().MessageID)<<32 + uint64(c.clientid.Contract())
+		store.Log.PersistOutbound(k, m)
+	}
 }
 
 // Close terminates the connection.
@@ -399,7 +298,7 @@ func (c *Conn) close() error {
 	// Don't close clustered connection, their servers are not being shut down.
 	if c.clnode == nil {
 		for _, stat := range c.subs.All() {
-			store.Connection.Delete(c.clientid.Contract(), stat.Topic, stat.ID)
+			store.Subscription.Delete(c.clientid.Contract(), stat.ID, stat.Topic)
 			// Decrement the subscription counter
 			c.service.meter.Subscriptions.Dec(1)
 		}

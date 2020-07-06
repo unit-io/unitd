@@ -44,10 +44,10 @@ type Subscriber interface {
 
 // Message represents a message which has to be forwarded or stored.
 type Message struct {
-	// ID      ID     `json:"id,omitempty"`   // The ID of the message
-	Topic   []byte `json:"chan,omitempty"` // The topic of the message
-	Payload []byte `json:"data,omitempty"` // The payload of the message
-	TTL     int64  `json:"ttl,omitempty"`  // The time-to-live of the message
+	Topic   []byte `json:"topic,omitempty"` // The topic of the message
+	Payload []byte `json:"data,omitempty"`  // The payload of the message
+	Qos     uint8  `json:"qos,omitempty"`   // The qos of the message
+	TTL     int64  `json:"ttl,omitempty"`   // The time-to-live of the message
 }
 
 // Size returns the byte size of the message.

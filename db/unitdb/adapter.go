@@ -126,7 +126,7 @@ func (a *adapter) Put(contract uint32, topic, payload []byte) error {
 }
 
 // PutWithID appends the messages to the store using a pre generated messageId.
-func (a *adapter) PutWithID(contract uint32, topic, messageId, payload []byte) error {
+func (a *adapter) PutWithID(contract uint32, messageId, topic, payload []byte) error {
 	err := a.db.PutEntry(&unitdb.Entry{
 		ID:       messageId,
 		Topic:    topic,
@@ -158,7 +158,7 @@ func (a *adapter) NewID() ([]byte, error) {
 }
 
 // Put appends the messages to the store.
-func (a *adapter) Delete(contract uint32, topic, messageId []byte) error {
+func (a *adapter) Delete(contract uint32, messageId, topic []byte) error {
 	err := a.db.DeleteEntry(&unitdb.Entry{
 		ID:       messageId,
 		Topic:    topic,

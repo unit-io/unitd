@@ -34,7 +34,7 @@ type Adapter interface {
 	// SSID, where first element should be a contract ID. The time resolution
 	// for TTL will be in seconds. The function is executed synchronously and
 	// it returns an error if some error was encountered during storage.
-	PutWithID(contract uint32, topic, messageId, payload []byte) error
+	PutWithID(contract uint32, messageId, topic, payload []byte) error
 
 	// Get performs a query and attempts to fetch last n messages where
 	// n is specified by limit argument. From and until times can also be specified
@@ -47,7 +47,7 @@ type Adapter interface {
 	// Delete is used to delete entry, the SSID provided must be a full SSID
 	// SSID, where first element should be a contract ID. The function is executed synchronously and
 	// it returns an error if some error was encountered during delete.
-	Delete(contract uint32, topic, messageId []byte) error
+	Delete(contract uint32, messageId, topic []byte) error
 
 	// PutMessage is used to store a message.
 	// it returns an error if some error was encountered during storage.

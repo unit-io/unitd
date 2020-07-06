@@ -73,11 +73,14 @@ func NewService(ctx context.Context, cfg *config.Config) (s *Service, err error)
 	}
 
 	// Open database connection
-	err = store.Open(string(s.config.Store))
+	err = store.Open(string(s.config.StoreConfig))
 	if err != nil {
 		log.Fatal("service", "Failed to connect to DB:", err)
 	}
-
+	// Init message store and recover pending messages from log file if reset is set false
+	if err := store.InitMessageStore(string(s.config.StoreConfig), s.config.Store(s.config.StoreConfig).Clean); err != nil {
+		return nil, err
+	}
 	return s, nil
 }
 
