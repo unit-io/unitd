@@ -97,7 +97,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		}
 
 		c.clientid = clientid
-
+		c.MessageIds.Reset(message.MID(c.connid))
 		// Take care of any messages in the store
 		if !packet.CleanSessFlag {
 			c.resume()
@@ -170,7 +170,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		} else {
 			packet = lp.Publish(*pkt.(*mqtt.Publish))
 		}
-		if err := c.onPublish(packet, packet.Topic, packet.Payload); err != nil {
+		if err := c.onPublish(packet, packet.MessageID, packet.Topic, packet.Payload); err != nil {
 			status = err.Status
 			c.notifyError(err, packet.MessageID)
 		}
@@ -390,7 +390,7 @@ func (c *Conn) onUnsubscribe(pkt lp.Unsubscribe, msgTopic []byte) *types.Error {
 }
 
 // OnPublish is a handler for Publish events.
-func (c *Conn) onPublish(pkt lp.Publish, msgTopic []byte, payload []byte) *types.Error {
+func (c *Conn) onPublish(pkt lp.Publish, messageID uint16, msgTopic []byte, payload []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
@@ -422,7 +422,7 @@ func (c *Conn) onPublish(pkt lp.Publish, msgTopic []byte, payload []byte) *types
 		return types.ErrServerError
 	}
 	// Iterate through all subscribers and send them the message
-	c.publish(pkt, topic, payload)
+	c.publish(pkt, messageID, topic, payload)
 
 	// acknowledge a packet
 	return c.ack(pkt)

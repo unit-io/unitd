@@ -22,7 +22,7 @@ func (c *Connect) encode() (bytes.Buffer, error) {
 	//buf.Write(reserveForHeader)
 
 	// pack the lp name and version
-	buf.Write(c.ProtoName)
+	buf.Write(encodeBytes(c.ProtoName))
 	buf.WriteByte(c.Version)
 
 	// pack the flags
@@ -36,7 +36,7 @@ func (c *Connect) encode() (bytes.Buffer, error) {
 	buf.WriteByte(flagByte)
 
 	buf.Write(encodeUint16(c.KeepAlive))
-	buf.Write(c.ClientID)
+	buf.Write(encodeBytes(c.ClientID))
 
 	if c.WillFlag {
 		buf.Write(c.WillTopic)
@@ -44,11 +44,11 @@ func (c *Connect) encode() (bytes.Buffer, error) {
 	}
 
 	if c.UsernameFlag {
-		buf.Write(c.Username)
+		buf.Write(encodeBytes(c.Username))
 	}
 
 	if c.PasswordFlag {
-		buf.Write(c.Password)
+		buf.Write(encodeBytes(c.Password))
 	}
 
 	// Write to the underlying buffer

@@ -20,7 +20,7 @@ func (s *Subscribe) encode() (bytes.Buffer, error) {
 	//buf.Write(reserveForHeader)
 	buf.Write(encodeUint16(s.MessageID))
 	for _, t := range s.Subscriptions {
-		buf.Write(t.Topic)
+		buf.Write(encodeBytes(t.Topic))
 		buf.WriteByte(byte(t.Qos))
 	}
 
@@ -129,7 +129,7 @@ func (u *Unsubscribe) encode() (bytes.Buffer, error) {
 	//buf.Write(reserveForHeader)
 	buf.Write(encodeUint16(u.MessageID))
 	for _, toptup := range u.Topics {
-		buf.Write(toptup.Topic)
+		buf.Write(encodeBytes(toptup.Topic))
 	}
 
 	// Write to the underlying buffer

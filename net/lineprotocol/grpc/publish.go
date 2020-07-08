@@ -23,6 +23,7 @@ func (p *Publish) encode() (bytes.Buffer, error) {
 		MessageID: uint32(p.MessageID),
 		Topic:     p.Topic,
 		Payload:   p.Payload,
+		Qos:       uint32(p.Qos),
 	}
 	pkt, err := proto.Marshal(&pub)
 	if err != nil {

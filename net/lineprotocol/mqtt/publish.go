@@ -2,6 +2,7 @@ package mqtt
 
 import (
 	"bytes"
+	"errors"
 	"io"
 
 	lp "github.com/unit-io/unitd/net/lineprotocol"
@@ -17,19 +18,25 @@ type (
 
 func (p *Publish) encode() (bytes.Buffer, error) {
 	var buf bytes.Buffer
+	var length int
+	length = 2 + len(p.Topic) + len(p.Payload)
+	if p.FixedHeader.Qos > 0 {
+		length += 2
+	}
+	if length > lp.MaxMessageSize {
+		return buf, errors.New("Message too large")
+	}
 
-	buf.Write(p.Topic)
+	buf.Write(encodeBytes(p.Topic))
 	if p.FixedHeader.Qos > 0 {
 		buf.Write(encodeUint16(p.MessageID))
 	}
 	buf.Write(p.Payload)
-
 	// Write to the underlying buffer
-	fh := FixedHeader{MessageType: lp.PUBLISH, RemainingLength: buf.Len() + 2}
+	fh := FixedHeader{MessageType: lp.PUBLISH, RemainingLength: length}
 	packet := fh.pack(&p.FixedHeader)
-	packet.Write(varHeader[:2])
-	_, err := packet.Write(buf.Bytes())
-	return packet, err
+	packet.Write(buf.Bytes())
+	return packet, nil
 }
 
 // Encode encodes message into binary data

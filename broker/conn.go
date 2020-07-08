@@ -89,7 +89,7 @@ func (s *Service) newRpcConn(conn interface{}, connid uid.LID, clientid uid.ID) 
 	return c
 }
 
-// ID returns the unique identifier of the subsriber.
+// ID returns the unique identifier of the subscriber.
 func (c *Conn) ID() string {
 	return strconv.FormatUint(uint64(c.connid), 10)
 }
@@ -105,8 +105,9 @@ func (c *Conn) SendMessage(m *message.Message) bool {
 		FixedHeader: lp.FixedHeader{
 			Qos: m.Qos,
 		},
-		Topic:   m.Topic,   // The topic for this message.
-		Payload: m.Payload, // The payload for this message.
+		MessageID: m.MessageID, // The ID of the message
+		Topic:     m.Topic,     // The topic for this message.
+		Payload:   m.Payload,   // The payload for this message.
 	}
 
 	// Acknowledge the publication
@@ -159,9 +160,9 @@ func (c *Conn) subscribe(msg lp.Subscribe, topic *security.Topic) (err error) {
 		}
 		if first := c.subs.Increment(topic.Topic[:topic.Size], key, messageId); first {
 			// Subscribe the subscriber
-			payload := make([]byte, 8)
-			binary.LittleEndian.PutUint32(payload[:4], uint32(c.connid))
-			binary.LittleEndian.PutUint32(payload[4:], uint32(msg.Qos))
+			payload := make([]byte, 5)
+			payload[0] = msg.Qos
+			binary.LittleEndian.PutUint32(payload[1:5], uint32(c.connid))
 			if err = store.Subscription.Put(c.clientid.Contract(), messageId, topic.Topic, payload); err != nil {
 				log.ErrLogger.Err(err).Str("context", "conn.subscribe").Str("topic", string(topic.Topic[:topic.Size])).Int64("connid", int64(c.connid)).Msg("unable to subscribe to topic") // Unable to subscribe
 				return err
@@ -200,10 +201,10 @@ func (c *Conn) unsubscribe(msg lp.Unsubscribe, topic *security.Topic) (err error
 }
 
 // Publish publishes a message to everyone and returns the number of outgoing bytes written.
-func (c *Conn) publish(msg lp.Publish, topic *security.Topic, payload []byte) (err error) {
+func (c *Conn) publish(msg lp.Publish, messageID uint16, topic *security.Topic, payload []byte) (err error) {
 	c.service.meter.InMsgs.Inc(1)
 	c.service.meter.InBytes.Inc(int64(len(payload)))
-	// subsciption count
+	// subscription count
 	scount := 0
 
 	conns, err := store.Subscription.Get(c.clientid.Contract(), topic.Topic)
@@ -211,15 +212,19 @@ func (c *Conn) publish(msg lp.Publish, topic *security.Topic, payload []byte) (e
 		log.ErrLogger.Err(err).Str("context", "conn.publish")
 	}
 	m := &message.Message{
-		Topic:   topic.Topic[:topic.Size],
-		Payload: payload,
+		MessageID: messageID,
+		Topic:     topic.Topic[:topic.Size],
+		Payload:   payload,
 	}
 	for _, connid := range conns {
-		lid := uid.LID(binary.LittleEndian.Uint32(connid[:4]))
-		qos := binary.LittleEndian.Uint32(connid[4:])
+		m.Qos = connid[0]
+		lid := uid.LID(binary.LittleEndian.Uint32(connid[1:5]))
 		sub := Globals.ConnCache.Get(lid)
 		if sub != nil {
-			m.Qos = uint8(qos)
+			if m.Qos != 0 && m.MessageID == 0 {
+				mID := c.MessageIds.NextID(lp.PUBLISH)
+				m.MessageID = c.outboundID(mID)
+			}
 			if !sub.SendMessage(m) {
 				log.ErrLogger.Err(err).Str("context", "conn.publish")
 			}
@@ -262,17 +267,17 @@ func (c *Conn) unsubAll() {
 	}
 }
 
-func (c *Conn) inboundID(id uint32) message.MID {
-	return message.MID(uint32(c.connid) - id)
+func (c *Conn) inboundID(id uint16) message.MID {
+	return message.MID(uint32(c.connid) - uint32(id))
 }
 
-func (c *Conn) outboundID(mid message.MID) (id uint32) {
-	return uint32(c.connid) - (uint32(mid))
+func (c *Conn) outboundID(mid message.MID) (id uint16) {
+	return uint16(uint32(c.connid) - (uint32(mid)))
 }
 
 func (c *Conn) storeInbound(m lp.Packet) {
 	if c.clientid != nil {
-		k := uint64(c.inboundID(uint32(m.Info().MessageID)))<<32 + uint64(c.clientid.Contract())
+		k := uint64(c.inboundID(m.Info().MessageID))<<32 + uint64(c.clientid.Contract())
 		store.Log.PersistInbound(k, m)
 	}
 }
