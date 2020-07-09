@@ -19,10 +19,8 @@ type Proto int
 
 const (
 	NONE Proto = iota
-	RPC
+	MQTT
 	GRPC
-	WEBSOCK
-	CLUSTER
 )
 
 //Handler is a callback which get called when a tcp, websocket connection is established or a grpc stream is established

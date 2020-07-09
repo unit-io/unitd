@@ -13,8 +13,6 @@ import (
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
-	"github.com/unit-io/unitd/net/lineprotocol/grpc"
-	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 	"github.com/unit-io/unitd/net/listener"
 	rh "github.com/unit-io/unitd/pkg/hash"
 	"github.com/unit-io/unitd/pkg/log"
@@ -511,15 +509,14 @@ func (c *Conn) rpcWriteLoop() {
 				// channel closed
 				return
 			}
-			var m []byte
-			if c.proto == lp.GRPC {
-				m = msg.(*grpc.Publish).Encode()
-			} else {
-				m = msg.(*mqtt.Publish).Encode()
+			m, err := lp.Encode(c.proto, msg)
+			if err != nil {
+				log.Error("conn.writeRpc", err.Error())
+				return
 			}
 			// The error is returned if the remote node is down. Which means the remote
 			// session is also disconnected.
-			if err := c.clnode.call("Cluster.Proxy", &ClusterResp{Msg: m, FromConnID: c.connid}, &unused); err != nil {
+			if err := c.clnode.call("Cluster.Proxy", &ClusterResp{Msg: m.Bytes(), FromConnID: c.connid}, &unused); err != nil {
 				log.Error("conn.writeRPC", err.Error())
 				return
 			}

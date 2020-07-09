@@ -12,12 +12,15 @@ import (
 // varHeader reserves the bytes for a variable header.
 var varHeader = []byte{0x0, 0x0, 0x0, 0x0}
 
-type Packet lp.Packet
+// type Packet lp.Packet
 
 type FixedHeader lp.FixedHeader
 
+type LineProto struct {
+}
+
 // ReadPacket unpacks the packet from the provided reader.
-func ReadPacket(r io.Reader) (Packet, error) {
+func (p *LineProto) ReadPacket(r io.Reader) (lp.Packet, error) {
 	var fh FixedHeader
 	if err := fh.unpack(r); err != nil {
 		return nil, err
@@ -26,43 +29,43 @@ func ReadPacket(r io.Reader) (Packet, error) {
 	// Check for empty packets
 	switch fh.MessageType {
 	case lp.PINGREQ:
-		return &Pingreq{}, nil
+		return &lp.Pingreq{}, nil
 	case lp.PINGRESP:
-		return &Pingresp{}, nil
+		return &lp.Pingresp{}, nil
 	case lp.DISCONNECT:
-		return &Disconnect{}, nil
+		return &lp.Disconnect{}, nil
 	}
 
-	buffer := make([]byte, fh.RemainingLength)
-	if _, err := io.ReadFull(r, buffer); err != nil {
+	msg := make([]byte, fh.RemainingLength)
+	if _, err := io.ReadFull(r, msg); err != nil {
 		return nil, err
 	}
 
 	// unpack the body
-	var pkt Packet
+	var pkt lp.Packet
 	switch fh.MessageType {
 	case lp.CONNECT:
-		pkt = unpackConnect(buffer, fh)
+		pkt = unpackConnect(msg, fh)
 	case lp.CONNACK:
-		pkt = unpackConnack(buffer, fh)
+		pkt = unpackConnack(msg, fh)
 	case lp.PUBLISH:
-		pkt = unpackPublish(buffer, fh)
+		pkt = unpackPublish(msg, fh)
 	case lp.PUBACK:
-		pkt = unpackPuback(buffer, fh)
+		pkt = unpackPuback(msg, fh)
 	case lp.PUBREC:
-		pkt = unpackPubrec(buffer, fh)
+		pkt = unpackPubrec(msg, fh)
 	case lp.PUBREL:
-		pkt = unpackPubrel(buffer, fh)
+		pkt = unpackPubrel(msg, fh)
 	case lp.PUBCOMP:
-		pkt = unpackPubcomp(buffer, fh)
+		pkt = unpackPubcomp(msg, fh)
 	case lp.SUBSCRIBE:
-		pkt = unpackSubscribe(buffer, fh)
+		pkt = unpackSubscribe(msg, fh)
 	case lp.SUBACK:
-		pkt = unpackSuback(buffer, fh)
+		pkt = unpackSuback(msg, fh)
 	case lp.UNSUBSCRIBE:
-		pkt = unpackUnsubscribe(buffer, fh)
+		pkt = unpackUnsubscribe(msg, fh)
 	case lp.UNSUBACK:
-		pkt = unpackUnsuback(buffer, fh)
+		pkt = unpackUnsuback(msg, fh)
 	default:
 		return nil, fmt.Errorf("Invalid zero-length packet with type %d", fh.MessageType)
 	}
@@ -70,8 +73,32 @@ func ReadPacket(r io.Reader) (Packet, error) {
 	return pkt, nil
 }
 
+func (p *LineProto) Encode(pkt lp.Packet) (bytes.Buffer, error) {
+	switch pkt.Type() {
+	case lp.PINGREQ:
+		return encodePingreq(*pkt.(*lp.Pingreq))
+	case lp.CONNACK:
+		return encodeConnack(*pkt.(*lp.Connack))
+	case lp.SUBACK:
+		return encodeSuback(*pkt.(*lp.Suback))
+	case lp.UNSUBACK:
+		return encodeUnsuback(*pkt.(*lp.Unsuback))
+	case lp.PUBLISH:
+		return encodePublish(*pkt.(*lp.Publish))
+	case lp.PUBACK:
+		return encodePuback(*pkt.(*lp.Puback))
+	case lp.PUBREC:
+		return encodePubrec(*pkt.(*lp.Pubrec))
+	case lp.PUBREL:
+		return encodePubrel(*pkt.(*lp.Pubrel))
+	case lp.PUBCOMP:
+		return encodePubcomp(*pkt.(*lp.Pubcomp))
+	}
+	return bytes.Buffer{}, nil
+}
+
 func (fh *FixedHeader) pack(h *lp.FixedHeader) bytes.Buffer {
-	var buf bytes.Buffer
+	var head bytes.Buffer
 	var firstByte byte
 	firstByte |= fh.MessageType << 4
 	if h != nil {
@@ -79,9 +106,9 @@ func (fh *FixedHeader) pack(h *lp.FixedHeader) bytes.Buffer {
 		firstByte |= h.Qos << 1
 		firstByte |= boolToUInt8(h.Retain)
 	}
-	buf.WriteByte(firstByte)
-	buf.Write(encodeLength(fh.RemainingLength))
-	return buf
+	head.WriteByte(firstByte)
+	head.Write(encodeLength(fh.RemainingLength))
+	return head
 }
 
 func (fh *FixedHeader) unpack(r io.Reader) error {

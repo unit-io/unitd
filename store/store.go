@@ -14,8 +14,7 @@ import (
 	adapter "github.com/unit-io/unitd/db"
 	"github.com/unit-io/unitd/message"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
-	"github.com/unit-io/unitd/net/lineprotocol/grpc"
-	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
+	"github.com/unit-io/unitd/pkg/log"
 )
 
 const (
@@ -123,11 +122,11 @@ type SubscriptionStore struct{}
 // Message is the ancor for storing/retrieving Message objects
 var Subscription SubscriptionStore
 
-func (c *SubscriptionStore) Put(contract uint32, messageId, topic, payload []byte) error {
+func (s *SubscriptionStore) Put(contract uint32, messageId, topic, payload []byte) error {
 	return adp.PutWithID(contract^connStoreId, messageId, topic, payload)
 }
 
-func (c *SubscriptionStore) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
+func (s *SubscriptionStore) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
 	resp, err := adp.Get(contract^connStoreId, topic)
 	for _, payload := range resp {
 		if payload == nil {
@@ -139,11 +138,11 @@ func (c *SubscriptionStore) Get(contract uint32, topic []byte) (matches [][]byte
 	return matches, err
 }
 
-func (c *SubscriptionStore) NewID() ([]byte, error) {
+func (s *SubscriptionStore) NewID() ([]byte, error) {
 	return adp.NewID()
 }
 
-func (c *SubscriptionStore) Delete(contract uint32, messageId, topic []byte) error {
+func (s *SubscriptionStore) Delete(contract uint32, messageId, topic []byte) error {
 	return adp.Delete(contract^connStoreId, messageId, topic)
 }
 
@@ -256,8 +255,8 @@ func InitMessageStore(jsonconf string, reset bool) error {
 	return nil
 }
 
-// handle which outgoing messages are stored
-func (m *MessageLog) PersistOutbound(key uint64, msg lp.Packet) {
+// PersistOutbound handles which outgoing messages are stored
+func (l *MessageLog) PersistOutbound(proto lp.ProtoAdapter, key uint64, msg lp.Packet) {
 	blockId := key & 0xFFFFFFFF
 	switch msg.Info().Qos {
 	case 0:
@@ -266,16 +265,20 @@ func (m *MessageLog) PersistOutbound(key uint64, msg lp.Packet) {
 			// Sending puback. delete matching publish
 			// from ibound
 			adp.DeleteMessage(blockId, key)
-			m.append(true, key, nil)
+			l.append(true, key, nil)
 		}
 	case 1:
 		switch msg.(type) {
 		case *lp.Publish, *lp.Pubrel, *lp.Subscribe, *lp.Unsubscribe:
 			// Sending publish. store in obound
 			// until puback received
-			data := msg.Encode()
-			adp.PutMessage(blockId, key, data)
-			m.append(false, key, data)
+			m, err := lp.Encode(proto, msg)
+			if err != nil {
+				log.ErrLogger.Err(err).Str("context", "store.PersistOutbound")
+				return
+			}
+			adp.PutMessage(blockId, key, m.Bytes())
+			l.append(false, key, m.Bytes())
 		default:
 		}
 	case 2:
@@ -283,16 +286,20 @@ func (m *MessageLog) PersistOutbound(key uint64, msg lp.Packet) {
 		case *lp.Publish:
 			// Sending publish. store in obound
 			// until pubrel received
-			data := msg.Encode()
-			adp.PutMessage(blockId, key, data)
-			m.append(false, key, data)
+			m, err := lp.Encode(proto, msg)
+			if err != nil {
+				log.ErrLogger.Err(err).Str("context", "store.PersistOutbound")
+				return
+			}
+			adp.PutMessage(blockId, key, m.Bytes())
+			l.append(false, key, m.Bytes())
 		default:
 		}
 	}
 }
 
-// handle which incoming messages are stored
-func (m *MessageLog) PersistInbound(key uint64, msg lp.Packet) {
+// PersistInbound handles which incoming messages are stored
+func (l *MessageLog) PersistInbound(proto lp.ProtoAdapter, key uint64, msg lp.Packet) {
 	blockId := key & 0xFFFFFFFF
 	switch msg.Info().Qos {
 	case 0:
@@ -301,7 +308,7 @@ func (m *MessageLog) PersistInbound(key uint64, msg lp.Packet) {
 			// Received a puback. delete matching publish
 			// from obound
 			adp.DeleteMessage(blockId, key)
-			m.append(true, key, nil)
+			l.append(true, key, nil)
 		case *lp.Publish, *lp.Pubrec, *lp.Connack:
 		default:
 		}
@@ -310,9 +317,13 @@ func (m *MessageLog) PersistInbound(key uint64, msg lp.Packet) {
 		case *lp.Publish, *lp.Pubrel:
 			// Received a publish. store it in ibound
 			// until puback sent
-			data := msg.Encode()
-			adp.PutMessage(blockId, key, data)
-			m.append(false, key, data)
+			m, err := lp.Encode(proto, msg)
+			if err != nil {
+				log.ErrLogger.Err(err).Str("context", "store.PersistOutbound")
+				return
+			}
+			adp.PutMessage(blockId, key, m.Bytes())
+			l.append(false, key, m.Bytes())
 		default:
 		}
 	case 2:
@@ -320,25 +331,24 @@ func (m *MessageLog) PersistInbound(key uint64, msg lp.Packet) {
 		case *lp.Publish:
 			// Received a publish. store it in ibound
 			// until pubrel received
-			data := msg.Encode()
-			adp.PutMessage(blockId, key, data)
-			m.append(false, key, data)
+			m, err := lp.Encode(proto, msg)
+			if err != nil {
+				log.ErrLogger.Err(err).Str("context", "store.PersistOutbound")
+				return
+			}
+			adp.PutMessage(blockId, key, m.Bytes())
+			l.append(false, key, m.Bytes())
 		default:
 		}
 	}
 }
 
 // Get performs a query and attempts to fetch message for the given blockId and key
-func (m *MessageLog) Get(proto lp.Proto, key uint64) lp.Packet {
+func (l *MessageLog) Get(proto lp.ProtoAdapter, key uint64) lp.Packet {
 	blockId := key & 0xFFFFFFFF
 	if raw, err := adp.GetMessage(blockId, key); raw != nil && err == nil {
 		r := bytes.NewReader(raw)
-		if proto == lp.GRPC {
-			if msg, err := grpc.ReadPacket(r); err == nil {
-				return msg
-			}
-		}
-		if msg, err := mqtt.ReadPacket(r); err == nil {
+		if msg, err := lp.ReadPacket(proto, r); err == nil {
 			return msg
 		}
 
@@ -347,7 +357,7 @@ func (m *MessageLog) Get(proto lp.Proto, key uint64) lp.Packet {
 }
 
 // Keys performs a query and attempts to fetch all keys for given blockId and key prefix.
-func (m *MessageLog) Keys(prefix uint32) []uint64 {
+func (l *MessageLog) Keys(prefix uint32) []uint64 {
 	matches := make([]uint64, 0)
 	keys := adp.Keys(uint64(prefix))
 	for _, k := range keys {
@@ -359,14 +369,14 @@ func (m *MessageLog) Keys(prefix uint32) []uint64 {
 }
 
 // Delete is used to delete message.
-func (m *MessageLog) Delete(key uint64) {
+func (l *MessageLog) Delete(key uint64) {
 	blockId := key & 0xFFFFFFFF
 	adp.DeleteMessage(blockId, key)
-	m.append(true, key, nil)
+	l.append(true, key, nil)
 }
 
 // Reset removes all keys from store for the given blockId and key prefix
-func (m *MessageLog) Reset(prefix uint32) {
+func (l *MessageLog) Reset(prefix uint32) {
 	keys := adp.Keys(uint64(prefix))
 	for _, k := range keys {
 		if evalPrefix(k, prefix) {
@@ -376,7 +386,7 @@ func (m *MessageLog) Reset(prefix uint32) {
 }
 
 // append appends message to tinyBatch for writing to log file.
-func (m *MessageLog) append(delFlag bool, k uint64, data []byte) error {
+func (l *MessageLog) append(delFlag bool, k uint64, data []byte) error {
 	var dBit uint8
 	if delFlag {
 		dBit = 1
@@ -384,7 +394,7 @@ func (m *MessageLog) append(delFlag bool, k uint64, data []byte) error {
 	var scratch [4]byte
 	binary.LittleEndian.PutUint32(scratch[0:4], uint32(len(data)+8+4+1))
 
-	if _, err := m.tinyBatch.buffer.Write(scratch[:]); err != nil {
+	if _, err := l.tinyBatch.buffer.Write(scratch[:]); err != nil {
 		return err
 	}
 
@@ -392,22 +402,22 @@ func (m *MessageLog) append(delFlag bool, k uint64, data []byte) error {
 	var key [9]byte
 	key[0] = dBit
 	binary.LittleEndian.PutUint64(key[1:], k)
-	if _, err := m.tinyBatch.buffer.Write(key[:]); err != nil {
+	if _, err := l.tinyBatch.buffer.Write(key[:]); err != nil {
 		return err
 	}
 	if data != nil {
-		if _, err := m.tinyBatch.buffer.Write(data); err != nil {
+		if _, err := l.tinyBatch.buffer.Write(data); err != nil {
 			return err
 		}
 	}
 
-	m.tinyBatch.incount()
+	l.tinyBatch.incount()
 	return nil
 }
 
 // tinyCommit commits tiny batch to log file
-func (m *MessageLog) tinyCommit() error {
-	if m.tinyBatch.count() == 0 {
+func (l *MessageLog) tinyCommit() error {
+	if l.tinyBatch.count() == 0 {
 		return nil
 	}
 
@@ -415,14 +425,14 @@ func (m *MessageLog) tinyCommit() error {
 		return err
 	}
 	// commit writes batches into write ahead log. The write happen synchronously.
-	m.writeLockC <- struct{}{}
+	l.writeLockC <- struct{}{}
 	defer func() {
-		m.tinyBatch.buffer.Reset()
-		<-m.writeLockC
+		l.tinyBatch.buffer.Reset()
+		<-l.writeLockC
 	}()
 	offset := uint32(0)
-	buf := m.tinyBatch.buffer.Bytes()
-	for i := uint32(0); i < m.tinyBatch.count(); i++ {
+	buf := l.tinyBatch.buffer.Bytes()
+	for i := uint32(0); i < l.tinyBatch.count(); i++ {
 		dataLen := binary.LittleEndian.Uint32(buf[offset : offset+4])
 		data := buf[offset+4 : offset+dataLen]
 		if err := <-adp.Append(data); err != nil {
@@ -434,7 +444,7 @@ func (m *MessageLog) tinyCommit() error {
 	if err := <-adp.SignalInitWrite(timeNow()); err != nil {
 		return err
 	}
-	m.tinyBatch.reset()
+	l.tinyBatch.reset()
 	return nil
 }
 

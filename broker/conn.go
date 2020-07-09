@@ -12,6 +12,8 @@ import (
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
+	"github.com/unit-io/unitd/net/lineprotocol/grpc"
+	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/uid"
 	"github.com/unit-io/unitd/store"
@@ -22,7 +24,7 @@ type Conn struct {
 	sync.Mutex
 	tracked uint32 // Whether the connection was already tracked or not.
 	// protocol - NONE (unset), RPC, GRPC, WEBSOCK, CLUSTER
-	proto  lp.Proto
+	proto  lp.ProtoAdapter
 	socket net.Conn
 	// send     chan []byte
 	send               chan lp.Packet
@@ -47,8 +49,16 @@ type Conn struct {
 }
 
 func (s *Service) newConn(t net.Conn, proto lp.Proto) *Conn {
+	var lineProto lp.ProtoAdapter
+	switch proto {
+	case lp.MQTT:
+		lineProto = &mqtt.LineProto{}
+	case lp.GRPC:
+		lineProto = &grpc.LineProto{}
+	}
+
 	c := &Conn{
-		proto:      proto,
+		proto:      lineProto,
 		socket:     t,
 		MessageIds: message.NewMessageIds(),
 		send:       make(chan lp.Packet, 1), // buffered
@@ -100,19 +110,19 @@ func (c *Conn) Type() message.SubscriberType {
 }
 
 // Send forwards the message to the underlying client.
-func (c *Conn) SendMessage(m *message.Message) bool {
-	msg := lp.Publish{
+func (c *Conn) SendMessage(msg *message.Message) bool {
+	m := lp.Publish{
 		FixedHeader: lp.FixedHeader{
-			Qos: m.Qos,
+			Qos: msg.Qos,
 		},
-		MessageID: m.MessageID, // The ID of the message
-		Topic:     m.Topic,     // The topic for this message.
-		Payload:   m.Payload,   // The payload for this message.
+		MessageID: msg.MessageID, // The ID of the message
+		Topic:     msg.Topic,     // The topic for this message.
+		Payload:   msg.Payload,   // The payload for this message.
 	}
 
 	// Acknowledge the publication
 	select {
-	case c.pub <- &msg:
+	case c.pub <- &m:
 	case <-time.After(time.Microsecond * 50):
 		return false
 	}
@@ -148,7 +158,7 @@ func (c *Conn) subscribe(msg lp.Subscribe, topic *security.Topic) (err error) {
 	key := string(topic.Key)
 	if exists := c.subs.Exist(key); exists && !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The contract is handled by a remote node. Forward message to it.
-		if err := Globals.Cluster.routeToContract(msg, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
+		if err := Globals.Cluster.routeToContract(&msg, topic, message.SUBSCRIBE, &message.Message{}, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.subscribe").Int64("connid", int64(c.connid)).Msg("unable to subscribe to remote topic")
 			return err
 		}
@@ -192,7 +202,7 @@ func (c *Conn) unsubscribe(msg lp.Unsubscribe, topic *security.Topic) (err error
 	}
 	if !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
 		// The topic is handled by a remote node. Forward message to it.
-		if err := Globals.Cluster.routeToContract(msg, topic, message.UNSUBSCRIBE, &message.Message{}, c); err != nil {
+		if err := Globals.Cluster.routeToContract(&msg, topic, message.UNSUBSCRIBE, &message.Message{}, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.unsubscribe").Int64("connid", int64(c.connid)).Msg("unable to unsubscribe to remote topic")
 			return err
 		}
@@ -205,7 +215,7 @@ func (c *Conn) publish(msg lp.Publish, messageID uint16, topic *security.Topic, 
 	c.service.meter.InMsgs.Inc(1)
 	c.service.meter.InBytes.Inc(int64(len(payload)))
 	// subscription count
-	scount := 0
+	msgCount := 0
 
 	conns, err := store.Subscription.Get(c.clientid.Contract(), topic.Topic)
 	if err != nil {
@@ -228,14 +238,14 @@ func (c *Conn) publish(msg lp.Publish, messageID uint16, topic *security.Topic, 
 			if !sub.SendMessage(m) {
 				log.ErrLogger.Err(err).Str("context", "conn.publish")
 			}
-			scount++
+			msgCount++
 		}
 	}
-	c.service.meter.OutMsgs.Inc(int64(scount))
-	c.service.meter.OutBytes.Inc(m.Size() * int64(scount))
+	c.service.meter.OutMsgs.Inc(int64(msgCount))
+	c.service.meter.OutBytes.Inc(m.Size() * int64(msgCount))
 
 	if !msg.IsForwarded && Globals.Cluster.isRemoteContract(string(c.clientid.Contract())) {
-		if err = Globals.Cluster.routeToContract(msg, topic, message.PUBLISH, m, c); err != nil {
+		if err = Globals.Cluster.routeToContract(&msg, topic, message.PUBLISH, m, c); err != nil {
 			log.ErrLogger.Err(err).Str("context", "conn.publish").Int64("connid", int64(c.connid)).Msg("unable to publish to remote topic")
 		}
 	}
@@ -278,14 +288,14 @@ func (c *Conn) outboundID(mid message.MID) (id uint16) {
 func (c *Conn) storeInbound(m lp.Packet) {
 	if c.clientid != nil {
 		k := uint64(c.inboundID(m.Info().MessageID))<<32 + uint64(c.clientid.Contract())
-		store.Log.PersistInbound(k, m)
+		store.Log.PersistInbound(c.proto, k, m)
 	}
 }
 
 func (c *Conn) storeOutbound(m lp.Packet) {
 	if c.clientid != nil {
 		k := uint64(m.Info().MessageID)<<32 + uint64(c.clientid.Contract())
-		store.Log.PersistOutbound(k, m)
+		store.Log.PersistOutbound(c.proto, k, m)
 	}
 }
 

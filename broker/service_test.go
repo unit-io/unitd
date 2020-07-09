@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/unit-io/unitd/config"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
-	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 )
 
 func TestPubsub(t *testing.T) {
@@ -40,33 +39,33 @@ func TestPubsub(t *testing.T) {
 	defer cli.Close()
 
 	{ // Connect to the broker
-		connect := mqtt.Connect{ClientID: []byte("UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ")}
+		connect := lp.Connect{ClientID: []byte("UCBFDONCNJLaKMCAIeJBaOVfbAXUZHNPLDKKLDKLHZHKYIZLCDPQ")}
 		n := connect.Encode()
 		assert.Equal(t, 14, n)
 		assert.NoError(t, err)
 	}
 
 	{ // Read connack
-		msg, err := mqtt.ReadPacket(cli)
+		msg, err := lp.ReadPacket(cli)
 		assert.NoError(t, err)
 		assert.Equal(t, lp.CONNACK, msg.Type())
 	}
 
 	{ // Ping the broker
-		ping := mqtt.Pingreq{}
+		ping := lp.Pingreq{}
 		n := ping.Encode()
 		assert.Equal(t, 2, n)
 		assert.NoError(t, err)
 	}
 
 	{ // Read pong
-		msg, err := mqtt.ReadPacket(cli)
+		msg, err := lp.ReadPacket(cli)
 		assert.NoError(t, err)
 		assert.Equal(t, lp.PINGRESP, msg.Type())
 	}
 
 	{ // Subscribe to a topic
-		sub := mqtt.Subscribe{
+		sub := lp.Subscribe{
 			FixedHeader: lp.FixedHeader{Qos: 0},
 			Subscriptions: []lp.TopicQOSTuple{
 				{Topic: []byte("AYAAMACRZDCHK/..."), Qos: 0},
@@ -77,13 +76,13 @@ func TestPubsub(t *testing.T) {
 	}
 
 	{ // Read suback
-		msg, err := mqtt.ReadPacket(cli)
+		msg, err := lp.ReadPacket(cli)
 		assert.NoError(t, err)
 		assert.Equal(t, lp.SUBACK, msg.Type())
 	}
 
 	{ // Publish a message
-		msg := mqtt.Publish{
+		msg := lp.Publish{
 			FixedHeader: lp.FixedHeader{Qos: 0},
 			Topic:       []byte("AbYANcEEZDcdY/unit8.b.b1?ttl=3m"),
 			Payload:     []byte("Hi unit8.b.b1!"),
@@ -93,10 +92,10 @@ func TestPubsub(t *testing.T) {
 	}
 
 	{ // Read the message back
-		msg, err := mqtt.ReadPacket(cli)
+		msg, err := lp.ReadPacket(cli)
 		assert.NoError(t, err)
 		assert.Equal(t, lp.PUBLISH, msg.Type())
-		assert.Equal(t, &mqtt.Publish{
+		assert.Equal(t, &lp.Publish{
 			FixedHeader: lp.FixedHeader{Qos: 0},
 			Topic:       []byte("unit8.b.b1"),
 			Payload:     []byte("Hi unit8.b.b1!"),
@@ -104,7 +103,7 @@ func TestPubsub(t *testing.T) {
 	}
 
 	{ // Unsubscribe from the topic
-		sub := mqtt.Unsubscribe{
+		sub := lp.Unsubscribe{
 			FixedHeader: lp.FixedHeader{Qos: 0},
 			Topics: []lp.TopicQOSTuple{
 				{Topic: []byte("AYAAMACRZDCHK/..."), Qos: 0},
@@ -115,13 +114,13 @@ func TestPubsub(t *testing.T) {
 	}
 
 	{ // Read unsuback
-		msg, err := mqtt.ReadPacket(cli)
+		msg, err := lp.ReadPacket(cli)
 		assert.NoError(t, err)
 		assert.Equal(t, lp.UNSUBACK, msg.Type())
 	}
 
 	{ // Disconnect from the broker
-		disconnect := mqtt.Disconnect{}
+		disconnect := lp.Disconnect{}
 		n := disconnect.Encode()
 		assert.Equal(t, 2, n)
 		assert.NoError(t, err)

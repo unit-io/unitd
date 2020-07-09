@@ -9,8 +9,6 @@ import (
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
 	lp "github.com/unit-io/unitd/net/lineprotocol"
-	"github.com/unit-io/unitd/net/lineprotocol/grpc"
-	"github.com/unit-io/unitd/net/lineprotocol/mqtt"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
@@ -36,29 +34,15 @@ func (c *Conn) readLoop() error {
 		// Set read/write deadlines so we can close dangling connections
 		c.socket.SetDeadline(time.Now().Add(time.Second * 120))
 
-		switch c.proto {
-		case lp.GRPC:
-			// Decode an incoming packet
-			pkt, err := grpc.ReadPacket(reader)
-			if err != nil {
-				return err
-			}
+		// Decode an incoming packet
+		pkt, err := lp.ReadPacket(c.proto, reader)
+		if err != nil {
+			return err
+		}
 
-			// Message handler
-			if err := c.handler(pkt); err != nil {
-				return err
-			}
-		default:
-			// Decode an incoming packet
-			pkt, err := mqtt.ReadPacket(reader)
-			if err != nil {
-				return err
-			}
-
-			// Message handler
-			if err := c.handler(pkt); err != nil {
-				return err
-			}
+		// Message handler
+		if err := c.handler(pkt); err != nil {
+			return err
 		}
 	}
 }
@@ -79,12 +63,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 	// An attempt to connect.
 	case lp.CONNECT:
 		var returnCode uint8
-		var packet lp.Connect
-		if c.proto == lp.GRPC {
-			packet = lp.Connect(*pkt.(*grpc.Connect))
-		} else {
-			packet = lp.Connect(*pkt.(*mqtt.Connect))
-		}
+		packet := *pkt.(*lp.Connect)
 
 		c.insecure = packet.InsecureFlag
 		c.username = string(packet.Username)
@@ -106,18 +85,13 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			store.Log.Reset(c.clientid.Contract())
 		}
 		// Write the ack
-		connack := lp.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
+		connack := &lp.Connack{ReturnCode: returnCode, ConnID: uint32(c.connid)}
 		c.send <- connack
-		// An attempt to subscribe to a topic.
-	case lp.SUBSCRIBE:
-		var packet lp.Subscribe
 
-		if c.proto == lp.GRPC {
-			packet = lp.Subscribe(*pkt.(*grpc.Subscribe))
-		} else {
-			packet = lp.Subscribe(*pkt.(*mqtt.Subscribe))
-		}
-		ack := lp.Suback{
+	// An attempt to subscribe to a topic.
+	case lp.SUBSCRIBE:
+		packet := *pkt.(*lp.Subscribe)
+		ack := &lp.Suback{
 			MessageID: packet.MessageID,
 			Qos:       make([]uint8, 0, len(packet.Subscriptions)),
 		}
@@ -139,15 +113,11 @@ func (c *Conn) handler(pkt lp.Packet) error {
 			return nil
 		}
 		c.send <- ack
+
 	// An attempt to unsubscribe from a topic.
 	case lp.UNSUBSCRIBE:
-		var packet lp.Unsubscribe
-		if c.proto == lp.GRPC {
-			packet = lp.Unsubscribe(*pkt.(*grpc.Unsubscribe))
-		} else {
-			packet = lp.Unsubscribe(*pkt.(*mqtt.Unsubscribe))
-		}
-		ack := lp.Unsuback{MessageID: packet.MessageID}
+		packet := *pkt.(*lp.Unsubscribe)
+		ack := &lp.Unsuback{MessageID: packet.MessageID}
 
 		// Unsubscribe from each subscription
 		for _, sub := range packet.Topics {
@@ -158,47 +128,32 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		}
 
 		c.send <- ack
+
 	// Ping response, respond appropriately.
 	case lp.PINGREQ:
-		resp := lp.Pingresp{}
+		resp := &lp.Pingresp{}
 		c.send <- resp
+
 	case lp.DISCONNECT:
+
 	case lp.PUBLISH:
-		var packet lp.Publish
-		if c.proto == lp.GRPC {
-			packet = lp.Publish(*pkt.(*grpc.Publish))
-		} else {
-			packet = lp.Publish(*pkt.(*mqtt.Publish))
-		}
+		packet := *pkt.(*lp.Publish)
 		if err := c.onPublish(packet, packet.MessageID, packet.Topic, packet.Payload); err != nil {
 			status = err.Status
 			c.notifyError(err, packet.MessageID)
 		}
-	case lp.PUBREC:
-		var packet lp.Pubrel
-		if c.proto == lp.GRPC {
-			p := lp.Pubrec(*pkt.(*grpc.Pubrec))
-			packet = lp.Pubrel{MessageID: p.MessageID}
-		} else {
-			p := lp.Pubrec(*pkt.(*mqtt.Pubrec))
-			packet = lp.Pubrel{MessageID: p.MessageID}
-		}
-		c.send <- packet
-	case lp.PUBREL:
-		var packet lp.Pubcomp
 
+	case lp.PUBREC:
+		c.send <- pkt
+
+	case lp.PUBREL:
 		// persist outbound
 		c.storeOutbound(pkt)
-		if c.proto == lp.GRPC {
-			p := lp.Pubrel(*pkt.(*grpc.Pubrel))
-			packet = lp.Pubcomp{MessageID: p.MessageID}
-		} else {
-			p := lp.Pubrel(*pkt.(*grpc.Pubrel))
-			packet = lp.Pubcomp{MessageID: p.MessageID}
-		}
-		c.send <- packet
+		c.send <- pkt
+
 	case lp.PUBCOMP:
 	}
+
 	return nil
 }
 
@@ -218,79 +173,23 @@ func (c *Conn) writeLoop(ctx context.Context) {
 				// Channel closed.
 				return
 			}
-			if c.proto == lp.GRPC {
-				packet := grpc.Publish(*msg)
-				packet.WriteTo(c.socket)
-			} else {
-				packet := mqtt.Publish(*msg)
-				packet.WriteTo(c.socket)
+			m, err := lp.Encode(c.proto, msg)
+			if err != nil {
+				log.Error("conn.writeLoop", err.Error())
+				return
 			}
+			c.socket.Write(m.Bytes())
 		case msg, ok := <-c.send:
 			if !ok {
 				// Channel closed.
 				return
 			}
-			if c.proto == lp.GRPC {
-				switch m := msg.(type) {
-				case lp.Pingresp:
-					packet := grpc.Pingresp(m)
-					packet.WriteTo(c.socket)
-				case lp.Connack:
-					packet := grpc.Connack(m)
-					packet.WriteTo(c.socket)
-				case lp.Suback:
-					packet := grpc.Suback(m)
-					packet.WriteTo(c.socket)
-				case lp.Unsuback:
-					packet := grpc.Unsuback(m)
-					packet.WriteTo(c.socket)
-				case lp.Publish:
-					packet := grpc.Publish(m)
-					packet.WriteTo(c.socket)
-				case lp.Puback:
-					packet := grpc.Puback(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubrec:
-					packet := grpc.Pubrec(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubrel:
-					packet := grpc.Pubrel(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubcomp:
-					packet := grpc.Pubcomp(m)
-					packet.WriteTo(c.socket)
-				}
-			} else {
-				switch m := msg.(type) {
-				case lp.Pingresp:
-					packet := mqtt.Pingresp(m)
-					packet.WriteTo(c.socket)
-				case lp.Connack:
-					packet := mqtt.Connack(m)
-					packet.WriteTo(c.socket)
-				case lp.Suback:
-					packet := mqtt.Suback(m)
-					packet.WriteTo(c.socket)
-				case lp.Unsuback:
-					packet := mqtt.Unsuback(m)
-					packet.WriteTo(c.socket)
-				case lp.Publish:
-					packet := mqtt.Publish(m)
-					packet.WriteTo(c.socket)
-				case lp.Puback:
-					packet := mqtt.Puback(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubrec:
-					packet := mqtt.Pubrec(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubrel:
-					packet := mqtt.Pubrel(m)
-					packet.WriteTo(c.socket)
-				case lp.Pubcomp:
-					packet := mqtt.Pubcomp(m)
-					packet.WriteTo(c.socket)
-				}
+			m, err := lp.Encode(c.proto, msg)
+			if err != nil {
+				log.Error("conn.writeLoop", err.Error())
+				return
 			}
+			c.socket.Write(m.Bytes())
 		}
 	}
 }
@@ -432,10 +331,10 @@ func (c *Conn) onPublish(pkt lp.Publish, messageID uint16, msgTopic []byte, payl
 func (c *Conn) ack(pkt lp.Publish) *types.Error {
 	switch pkt.FixedHeader.Qos {
 	case 2:
-		pubrec := lp.Pubrec{MessageID: pkt.MessageID}
+		pubrec := &lp.Pubrec{MessageID: pkt.MessageID}
 		c.send <- pubrec
 	case 1:
-		puback := lp.Puback{MessageID: pkt.MessageID}
+		puback := &lp.Puback{MessageID: pkt.MessageID}
 		// persist outbound
 		c.storeOutbound(puback)
 		c.send <- puback

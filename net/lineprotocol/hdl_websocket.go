@@ -77,7 +77,7 @@ func (s *HttpServer) HandleFunc(w http.ResponseWriter, r *http.Request) {
 		return nil
 	})
 
-	go s.Handler(newConn(ws), WEBSOCK)
+	go s.Handler(newConn(ws), MQTT)
 }
 
 func (s *HttpServer) Serve(list net.Listener) error {

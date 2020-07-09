@@ -51,6 +51,6 @@ func (s *TcpServer) Serve(list net.Listener) error {
 		}
 
 		tempDelay = 0
-		go s.Handler(conn, RPC)
+		go s.Handler(conn, MQTT)
 	}
 }
