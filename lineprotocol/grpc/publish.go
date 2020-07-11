@@ -4,7 +4,7 @@ import (
 	"bytes"
 
 	"github.com/golang/protobuf/proto"
-	lp "github.com/unit-io/unitd/net/lineprotocol"
+	lp "github.com/unit-io/unitd/lineprotocol"
 	pbx "github.com/unit-io/unitd/proto"
 )
 

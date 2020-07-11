@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	lp "github.com/unit-io/unitd/net/lineprotocol"
+	lp "github.com/unit-io/unitd/lineprotocol"
 )
 
 type FixedHeader lp.FixedHeader

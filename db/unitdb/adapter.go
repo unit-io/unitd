@@ -118,22 +118,13 @@ func (a *adapter) GetName() string {
 
 // Put appends the messages to the store.
 func (a *adapter) Put(contract uint32, topic, payload []byte) error {
-	err := a.db.PutEntry(&unitdb.Entry{
-		Topic:    topic,
-		Payload:  payload,
-		Contract: contract,
-	})
+	err := a.db.PutEntry(unitdb.NewEntry(topic).WithPayload(payload).WithContract(contract))
 	return err
 }
 
 // PutWithID appends the messages to the store using a pre generated messageId.
 func (a *adapter) PutWithID(contract uint32, messageId, topic, payload []byte) error {
-	err := a.db.PutEntry(&unitdb.Entry{
-		ID:       messageId,
-		Topic:    topic,
-		Payload:  payload,
-		Contract: contract,
-	})
+	err := a.db.PutEntry(unitdb.NewEntry(topic).WithID(messageId).WithPayload(payload).WithContract(contract))
 	return err
 }
 
@@ -142,7 +133,7 @@ func (a *adapter) PutWithID(contract uint32, messageId, topic, payload []byte) e
 // for time-series retrieval.
 func (a *adapter) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
 	// Iterating over key/value pairs.
-	matches, err = a.db.Get(&unitdb.Query{Contract: contract, Topic: topic})
+	matches, err = a.db.Get(unitdb.NewQuery(topic).WithContract(contract))
 	if err != nil {
 		return nil, err
 	}
@@ -160,11 +151,7 @@ func (a *adapter) NewID() ([]byte, error) {
 
 // Put appends the messages to the store.
 func (a *adapter) Delete(contract uint32, messageId, topic []byte) error {
-	err := a.db.DeleteEntry(&unitdb.Entry{
-		ID:       messageId,
-		Topic:    topic,
-		Contract: contract,
-	})
+	err := a.db.DeleteEntry(unitdb.NewEntry(topic).WithID(messageId).WithContract(contract))
 	return err
 }
 
@@ -226,7 +213,7 @@ func (a *adapter) SignalLogApplied(seq uint64) error {
 // Recovery recovers pending messages from log file.
 func (a *adapter) Recovery(path string, size int64, reset bool) (map[uint64][]byte, error) {
 	m := make(map[uint64][]byte) // map[key]msg
-	logOpts := wal.Options{Path: path + "/" + defaultDatabase + logPostfix, TargetSize: size, BufferSize: size}
+	logOpts := wal.Options{Path: path + "/" + defaultMessageStore + logPostfix, TargetSize: size, BufferSize: size, Reset: reset}
 	wal, needLogRecovery, err := wal.New(logOpts)
 	if err != nil {
 		wal.Close()

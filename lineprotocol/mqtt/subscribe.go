@@ -3,7 +3,7 @@ package mqtt
 import (
 	"bytes"
 
-	lp "github.com/unit-io/unitd/net/lineprotocol"
+	lp "github.com/unit-io/unitd/lineprotocol"
 )
 
 func encodeSubscribe(s lp.Subscribe) (bytes.Buffer, error) {

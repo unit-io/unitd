@@ -12,8 +12,8 @@ import (
 
 	"github.com/unit-io/bpool"
 	adapter "github.com/unit-io/unitd/db"
+	lp "github.com/unit-io/unitd/lineprotocol"
 	"github.com/unit-io/unitd/message"
-	lp "github.com/unit-io/unitd/net/lineprotocol"
 	"github.com/unit-io/unitd/pkg/log"
 )
 

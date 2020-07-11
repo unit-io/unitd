@@ -3,7 +3,7 @@ package mqtt
 import (
 	"bytes"
 
-	lp "github.com/unit-io/unitd/net/lineprotocol"
+	lp "github.com/unit-io/unitd/lineprotocol"
 )
 
 func encodeConnect(c lp.Connect) (bytes.Buffer, error) {

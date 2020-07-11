@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 
-	lp "github.com/unit-io/unitd/net/lineprotocol"
+	lp "github.com/unit-io/unitd/lineprotocol"
 )
 
 func encodePublish(p lp.Publish) (bytes.Buffer, error) {

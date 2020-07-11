@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"time"
 
+	lp "github.com/unit-io/unitd/lineprotocol"
 	"github.com/unit-io/unitd/message"
 	"github.com/unit-io/unitd/message/security"
-	lp "github.com/unit-io/unitd/net/lineprotocol"
 	"github.com/unit-io/unitd/pkg/crypto"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/pkg/stats"
