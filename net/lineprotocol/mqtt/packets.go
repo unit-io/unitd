@@ -9,11 +9,6 @@ import (
 	lp "github.com/unit-io/unitd/net/lineprotocol"
 )
 
-// varHeader reserves the bytes for a variable header.
-var varHeader = []byte{0x0, 0x0, 0x0, 0x0}
-
-// type Packet lp.Packet
-
 type FixedHeader lp.FixedHeader
 
 type LineProto struct {
@@ -131,17 +126,6 @@ func (fh *FixedHeader) unpack(r io.Reader) error {
 }
 
 // -------------------------------------------------------------
-func writeString(buf *bytes.Buffer, s []byte) {
-	strlen := uint16(len(s))
-	writeUint16(buf, strlen)
-	buf.Write(s)
-}
-
-func writeUint16(buf *bytes.Buffer, tupac uint16) {
-	buf.WriteByte(byte((tupac & 0xff00) >> 8))
-	buf.WriteByte(byte(tupac & 0x00ff))
-}
-
 func readString(b []byte, startsAt *uint32) []byte {
 	l := readUint16(b, startsAt)
 	v := b[*startsAt : uint32(l)+*startsAt]
@@ -165,69 +149,16 @@ func boolToUInt8(v bool) uint8 {
 	return 0x0
 }
 
-func boolToByte(b bool) byte {
-	switch b {
-	case true:
-		return 1
-	default:
-		return 0
-	}
-}
-
-func decodeByte(b io.Reader) byte {
-	num := make([]byte, 1)
-	b.Read(num)
-	return num[0]
-}
-
-func decodeUint16(b io.Reader) uint16 {
-	num := make([]byte, 2)
-	b.Read(num)
-	return binary.BigEndian.Uint16(num)
-}
-
 func encodeUint16(num uint16) []byte {
 	bytes := make([]byte, 2)
 	binary.BigEndian.PutUint16(bytes, num)
 	return bytes
 }
 
-func encodeString(field string) []byte {
-	fieldLength := make([]byte, 2)
-	binary.BigEndian.PutUint16(fieldLength, uint16(len(field)))
-	return append(fieldLength, []byte(field)...)
-}
-
-func decodeString(b io.Reader) string {
-	fieldLength := decodeUint16(b)
-	field := make([]byte, fieldLength)
-	b.Read(field)
-	return string(field)
-}
-
-func decodeBytes(b io.Reader) []byte {
-	fieldLength := decodeUint16(b)
-	field := make([]byte, fieldLength)
-	b.Read(field)
-	return field
-}
-
 func encodeBytes(field []byte) []byte {
 	fieldLength := make([]byte, 2)
 	binary.BigEndian.PutUint16(fieldLength, uint16(len(field)))
 	return append(fieldLength, field...)
-}
-
-func varHeaderLength(length int) int {
-	var varBytes int
-	for {
-		length /= 128
-		if length == 0 {
-			break
-		}
-		varBytes++
-	}
-	return varBytes
 }
 
 func encodeLength(length int) []byte {

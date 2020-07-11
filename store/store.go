@@ -226,7 +226,7 @@ func recovery(path string, size int64, reset bool) error {
 }
 
 // InitMessageStore init message store and start recovery if reset flag is not set.
-func InitMessageStore(jsonconf string, reset bool) error {
+func InitMessageStore(ctx context.Context, jsonconf string, reset bool) error {
 	var config configType
 	if err := json.Unmarshal([]byte(jsonconf), &config); err != nil {
 		return errors.New("store: failed to parse config: " + err.Error() + "(" + jsonconf + ")")
@@ -246,12 +246,12 @@ func InitMessageStore(jsonconf string, reset bool) error {
 	if err := recovery(storeConfig.Dir, storeConfig.Size, reset); err != nil {
 		return err
 	}
-	Log.tinyBatchLoop(15 * time.Millisecond)
+	Log.tinyBatchLoop(ctx, 15*time.Millisecond)
 	dur, err := time.ParseDuration(storeConfig.LogReleaseDur)
 	if err != nil {
 		return err
 	}
-	logReleaser(dur)
+	logReleaser(ctx, dur)
 	return nil
 }
 
@@ -461,8 +461,7 @@ func timeSeq(dur time.Duration) uint64 {
 }
 
 // tinyBatchLoop handles tiny bacthes write to log.
-func (m *MessageLog) tinyBatchLoop(interval time.Duration) {
-	ctx := context.Background()
+func (m *MessageLog) tinyBatchLoop(ctx context.Context, interval time.Duration) {
 	go func() {
 		tinyBatchWriterTicker := time.NewTicker(interval)
 		defer func() {
@@ -482,8 +481,7 @@ func (m *MessageLog) tinyBatchLoop(interval time.Duration) {
 }
 
 // logs are released from wal if older than a minute.
-func logReleaser(dur time.Duration) {
-	ctx := context.Background()
+func logReleaser(ctx context.Context, dur time.Duration) {
 	go func() {
 		logTicker := time.NewTicker(dur)
 		defer logTicker.Stop()

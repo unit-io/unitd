@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	defaultDatabase = "unitd"
+	defaultDatabase     = "unitd"
+	defaultMessageStore = "messages"
 
 	dbVersion = 2.0
 
