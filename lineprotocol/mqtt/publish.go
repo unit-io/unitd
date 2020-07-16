@@ -39,7 +39,7 @@ func encodePuback(p lp.Puback) (bytes.Buffer, error) {
 
 func encodePubrec(p lp.Pubrec) (bytes.Buffer, error) {
 	fh := FixedHeader{MessageType: lp.PUBREC, RemainingLength: 2}
-	packet := fh.pack(nil)
+	packet := fh.pack(&p.FixedHeader)
 	_, err := packet.Write(encodeUint16(p.MessageID))
 	return packet, err
 }
@@ -88,7 +88,8 @@ func unpackPubrec(data []byte, fh FixedHeader) lp.Packet {
 	bookmark := uint32(0)
 	msgID := readUint16(data, &bookmark)
 	return &lp.Pubrec{
-		MessageID: msgID,
+		FixedHeader: lp.FixedHeader(fh),
+		MessageID:   msgID,
 	}
 }
 

@@ -72,10 +72,20 @@ func (p *LineProto) Encode(pkt lp.Packet) (bytes.Buffer, error) {
 	switch pkt.Type() {
 	case lp.PINGREQ:
 		return encodePingreq(*pkt.(*lp.Pingreq))
+	case lp.PINGRESP:
+		return encodePingresp(*pkt.(*lp.Pingresp))
+	case lp.CONNECT:
+		return encodeConnect(*pkt.(*lp.Connect))
 	case lp.CONNACK:
 		return encodeConnack(*pkt.(*lp.Connack))
+	case lp.DISCONNECT:
+		return encodeDisconnect(*pkt.(*lp.Disconnect))
+	case lp.SUBSCRIBE:
+		return encodeSubscribe(*pkt.(*lp.Subscribe))
 	case lp.SUBACK:
 		return encodeSuback(*pkt.(*lp.Suback))
+	case lp.UNSUBSCRIBE:
+		return encodeUnsubscribe(*pkt.(*lp.Unsubscribe))
 	case lp.UNSUBACK:
 		return encodeUnsuback(*pkt.(*lp.Unsuback))
 	case lp.PUBLISH:

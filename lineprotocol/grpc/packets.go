@@ -21,12 +21,12 @@ func (p *LineProto) ReadPacket(r io.Reader) (lp.Packet, error) {
 	fh.unpack(r)
 
 	// Check for empty packets
-	switch fh.MessageType {
-	case pbx.MessageType_PINGREQ:
+	switch uint8(fh.MessageType) {
+	case lp.PINGREQ:
 		return &lp.Pingreq{}, nil
-	case pbx.MessageType_PINGRESP:
+	case lp.PINGRESP:
 		return &lp.Pingresp{}, nil
-	case pbx.MessageType_DISCONNECT:
+	case lp.DISCONNECT:
 		return &lp.Disconnect{}, nil
 	}
 
@@ -38,28 +38,28 @@ func (p *LineProto) ReadPacket(r io.Reader) (lp.Packet, error) {
 
 	// unpack the body
 	var pkt lp.Packet
-	switch fh.MessageType {
-	case pbx.MessageType_CONNECT:
+	switch uint8(fh.MessageType) {
+	case lp.CONNECT:
 		pkt = unpackConnect(msg)
-	case pbx.MessageType_CONNACK:
+	case lp.CONNACK:
 		pkt = unpackConnack(msg)
-	case pbx.MessageType_PUBLISH:
+	case lp.PUBLISH:
 		pkt = unpackPublish(msg)
-	case pbx.MessageType_PUBACK:
+	case lp.PUBACK:
 		pkt = unpackPuback(msg)
-	case pbx.MessageType_PUBREC:
+	case lp.PUBREC:
 		pkt = unpackPubrec(msg)
-	case pbx.MessageType_PUBREL:
+	case lp.PUBREL:
 		pkt = unpackPubrel(msg)
-	case pbx.MessageType_PUBCOMP:
+	case lp.PUBCOMP:
 		pkt = unpackPubcomp(msg)
-	case pbx.MessageType_SUBSCRIBE:
+	case lp.SUBSCRIBE:
 		pkt = unpackSubscribe(msg)
-	case pbx.MessageType_SUBACK:
+	case lp.SUBACK:
 		pkt = unpackSuback(msg)
-	case pbx.MessageType_UNSUBSCRIBE:
+	case lp.UNSUBSCRIBE:
 		pkt = unpackUnsubscribe(msg)
-	case pbx.MessageType_UNSUBACK:
+	case lp.UNSUBACK:
 		pkt = unpackUnsuback(msg)
 	default:
 		return nil, fmt.Errorf("Invalid zero-length packet with type %d", fh.MessageType)
@@ -73,10 +73,20 @@ func (p *LineProto) Encode(pkt lp.Packet) (bytes.Buffer, error) {
 	switch pkt.Type() {
 	case lp.PINGREQ:
 		return encodePingreq(*pkt.(*lp.Pingreq))
+	case lp.PINGRESP:
+		return encodePingresp(*pkt.(*lp.Pingresp))
+	case lp.CONNECT:
+		return encodeConnect(*pkt.(*lp.Connect))
 	case lp.CONNACK:
 		return encodeConnack(*pkt.(*lp.Connack))
+	case lp.DISCONNECT:
+		return encodeDisconnect(*pkt.(*lp.Disconnect))
+	case lp.SUBSCRIBE:
+		return encodeSubscribe(*pkt.(*lp.Subscribe))
 	case lp.SUBACK:
 		return encodeSuback(*pkt.(*lp.Suback))
+	case lp.UNSUBSCRIBE:
+		return encodeUnsubscribe(*pkt.(*lp.Unsubscribe))
 	case lp.UNSUBACK:
 		return encodeUnsuback(*pkt.(*lp.Unsuback))
 	case lp.PUBLISH:

@@ -49,6 +49,9 @@ type Adapter interface {
 	// it returns an error if some error was encountered during delete.
 	Delete(contract uint32, messageId, topic []byte) error
 
+	// Append appends message to the buffer.
+	Append(delFlag bool, k uint64, data []byte) error
+
 	// PutMessage is used to store a message.
 	// it returns an error if some error was encountered during storage.
 	PutMessage(blockId, key uint64, payload []byte) error
@@ -63,19 +66,9 @@ type Adapter interface {
 	// it returns an error if some error was encountered during delete.
 	DeleteMessage(blockId, key uint64) error
 
-	// NewWriter creates new log writer
-	NewWriter() error
-
-	// Append appends messages to the log
-	Append(data []byte) <-chan error
-
-	// SignalInitWrite signal to write messages to log file
-	SignalInitWrite(seq uint64) <-chan error
-
-	// SignalLogApplied signals log has been applied for given upper sequence.
-	// logs are released from wal so that space can be reused.
-	SignalLogApplied(seq uint64) error
+	// Write writes message to log file, and also release older messages from log for the duration.
+	Write() error
 
 	// Recovery loads pending messages from log file into store
-	Recovery(path string, size int64, reset bool) (map[uint64][]byte, error)
+	Recovery(reset bool) (map[uint64][]byte, error)
 }

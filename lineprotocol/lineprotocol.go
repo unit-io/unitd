@@ -2,14 +2,11 @@ package lineprotocol
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 )
 
 //Packet is the interface all our packets in the line protocol will be implementing
 type Packet interface {
-	fmt.Stringer
-
 	Type() uint8
 	Info() Info
 }
@@ -117,6 +114,7 @@ type Puback struct {
 //Pubrec is for verifying the receipt of a publish
 //Qoth the spec:"It is the second Packet of the QoS level 2 protocol flow. A PUBREC Packet is sent by the server in response to a PUBLISH Packet from a publishing client, or by a subscriber in response to a PUBLISH Packet from the server."
 type Pubrec struct {
+	FixedHeader
 	MessageID uint16
 
 	Packet
@@ -198,11 +196,6 @@ func (c *Connect) Type() uint8 {
 	return CONNECT
 }
 
-// String returns the name of mqtt operation.
-func (c *Connect) String() string {
-	return "connect"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (c *Connect) Info() Info {
 	return Info{Qos: 0, MessageID: 0}
@@ -211,11 +204,6 @@ func (c *Connect) Info() Info {
 // Type returns the MQTT packet type.
 func (c *Connack) Type() uint8 {
 	return CONNACK
-}
-
-// String returns the name of mqtt operation.
-func (c *Connack) String() string {
-	return "connack"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -228,11 +216,6 @@ func (p *Pingreq) Type() uint8 {
 	return PINGREQ
 }
 
-// String returns the name of mqtt operation.
-func (p *Pingreq) String() string {
-	return "pingreq"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (p *Pingreq) Info() Info {
 	return Info{Qos: 0, MessageID: 0}
@@ -241,11 +224,6 @@ func (p *Pingreq) Info() Info {
 // Type returns the MQTT packet type.
 func (p *Pingresp) Type() uint8 {
 	return PINGRESP
-}
-
-// String returns the name of mqtt operation.
-func (p *Pingresp) String() string {
-	return "pingresp"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -258,11 +236,6 @@ func (d *Disconnect) Type() uint8 {
 	return DISCONNECT
 }
 
-// String returns the name of mqtt operation.
-func (d *Disconnect) String() string {
-	return "disconnect"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (d *Disconnect) Info() Info {
 	return Info{Qos: 0, MessageID: 0}
@@ -271,11 +244,6 @@ func (d *Disconnect) Info() Info {
 // Type returns the MQTT Packet type.
 func (p *Publish) Type() uint8 {
 	return PUBLISH
-}
-
-// String returns the name of mqtt operation.
-func (p *Publish) String() string {
-	return "pub"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -288,11 +256,6 @@ func (p *Puback) Type() uint8 {
 	return PUBACK
 }
 
-// String returns the name of mqtt operation.
-func (p *Puback) String() string {
-	return "puback"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (p *Puback) Info() Info {
 	return Info{Qos: 0, MessageID: p.MessageID}
@@ -301,11 +264,6 @@ func (p *Puback) Info() Info {
 // Type returns the MQTT Packet type.
 func (p *Pubrec) Type() uint8 {
 	return PUBREC
-}
-
-// String returns the name of mqtt operation.
-func (p *Pubrec) String() string {
-	return "pubrec"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -318,11 +276,6 @@ func (p *Pubrel) Type() uint8 {
 	return PUBREL
 }
 
-// String returns the name of mqtt operation.
-func (p *Pubrel) String() string {
-	return "pubrel"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (p *Pubrel) Info() Info {
 	return Info{Qos: p.Qos, MessageID: p.MessageID}
@@ -331,11 +284,6 @@ func (p *Pubrel) Info() Info {
 // Type returns the MQTT Packet type.
 func (p *Pubcomp) Type() uint8 {
 	return PUBCOMP
-}
-
-// String returns the name of mqtt operation.
-func (p *Pubcomp) String() string {
-	return "pubcomp"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -348,11 +296,6 @@ func (s *Subscribe) Type() uint8 {
 	return SUBSCRIBE
 }
 
-// String returns the name of mqtt operation.
-func (s *Subscribe) String() string {
-	return "sub"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (s *Subscribe) Info() Info {
 	return Info{Qos: 1, MessageID: s.MessageID}
@@ -361,11 +304,6 @@ func (s *Subscribe) Info() Info {
 // Type returns the MQTT Packet type.
 func (s *Suback) Type() uint8 {
 	return SUBACK
-}
-
-// String returns the name of mqtt operation.
-func (s *Suback) String() string {
-	return "suback"
 }
 
 // Info returns Qos and MessageID of this packet.
@@ -378,11 +316,6 @@ func (u *Unsubscribe) Type() uint8 {
 	return UNSUBSCRIBE
 }
 
-// String returns the name of mqtt operation.
-func (u *Unsubscribe) String() string {
-	return "unsub"
-}
-
 // Info returns Qos and MessageID of this packet.
 func (u *Unsubscribe) Info() Info {
 	return Info{Qos: 1, MessageID: u.MessageID}
@@ -391,11 +324,6 @@ func (u *Unsubscribe) Info() Info {
 // Type returns the MQTT Packet type.
 func (u *Unsuback) Type() uint8 {
 	return UNSUBACK
-}
-
-// String returns the name of mqtt operation.
-func (u *Unsuback) String() string {
-	return "unsuback"
 }
 
 // Info returns Qos and MessageID of this packet.

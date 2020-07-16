@@ -6,7 +6,10 @@ import (
 	"errors"
 	"io"
 	"os"
+	"sync/atomic"
+	"time"
 
+	"github.com/unit-io/bpool"
 	"github.com/unit-io/unitd/pkg/log"
 	"github.com/unit-io/unitd/store"
 	"github.com/unit-io/unitdb"
@@ -26,8 +29,10 @@ const (
 )
 
 type configType struct {
-	Dir      string `json:"dir,omitempty"`
-	ValueDir string `json:"value_dir,omitempty"`
+	Dir           string `json:"dir,omitempty"`
+	Size          int64  `json:"mem_size"`
+	LogReleaseDur string `json:"log_release_duration,omitempty"`
+	dur           time.Duration
 }
 
 const (
@@ -39,9 +44,13 @@ const (
 
 // Store represents an SSD-optimized storage store.
 type adapter struct {
-	db        *unitdb.DB // The underlying database to store messages.
-	mem       *memdb.DB  // The underlying memdb to store messages.
-	logWriter *wal.Writer
+	db         *unitdb.DB // The underlying database to store messages.
+	mem        *memdb.DB  // The underlying memdb to store messages.
+	config     *configType
+	writeLockC chan struct{}
+	bufPool    *bpool.BufferPool
+	//tiny Batch
+	tinyBatch *tinyBatch
 	wal       *wal.WAL
 	version   int
 
@@ -74,11 +83,19 @@ func (a *adapter) Open(jsonconfig string) error {
 		return err
 	}
 	// Attempt to open the memdb
-	a.mem, err = memdb.Open(1 << 33)
+	a.mem, err = memdb.Open(config.Size)
 	if err != nil {
 		return err
 	}
 
+	a.bufPool = bpool.NewBufferPool(config.Size, nil)
+	a.tinyBatch.buffer = a.bufPool.Get()
+	dur, err := time.ParseDuration(config.LogReleaseDur)
+	if err != nil {
+		return err
+	}
+	a.config = &config
+	a.config.dur = dur
 	return nil
 }
 
@@ -155,6 +172,60 @@ func (a *adapter) Delete(contract uint32, messageId, topic []byte) error {
 	return err
 }
 
+type (
+	tinyBatchInfo struct {
+		entryCount uint32
+	}
+
+	tinyBatch struct {
+		tinyBatchInfo
+		buffer *bpool.Buffer
+	}
+)
+
+func (b *tinyBatch) reset() {
+	b.entryCount = 0
+	atomic.StoreUint32(&b.entryCount, 0)
+}
+
+func (b *tinyBatch) count() uint32 {
+	return atomic.LoadUint32(&b.entryCount)
+}
+
+func (b *tinyBatch) incount() uint32 {
+	return atomic.AddUint32(&b.entryCount, 1)
+}
+
+// append appends message to tinyBatch for writing to log file.
+func (a *adapter) Append(delFlag bool, k uint64, data []byte) error {
+	var dBit uint8
+	if delFlag {
+		dBit = 1
+	}
+	var scratch [4]byte
+	binary.LittleEndian.PutUint32(scratch[0:4], uint32(len(data)+8+4+1))
+
+	if _, err := a.tinyBatch.buffer.Write(scratch[:]); err != nil {
+		return err
+	}
+
+	// key with flag bit
+	var key [9]byte
+	key[0] = dBit
+	binary.LittleEndian.PutUint64(key[1:], k)
+	if _, err := a.tinyBatch.buffer.Write(key[:]); err != nil {
+		return err
+	}
+	if data != nil {
+		if _, err := a.tinyBatch.buffer.Write(data); err != nil {
+			return err
+		}
+	}
+
+	a.tinyBatch.incount()
+	return nil
+}
+
 // PutMessage appends the messages to the store.
 func (a *adapter) PutMessage(blockId, key uint64, payload []byte) error {
 	if err := a.mem.Set(blockId, key, payload); err != nil {
@@ -185,35 +256,10 @@ func (a *adapter) DeleteMessage(blockId, key uint64) error {
 	return nil
 }
 
-// NewWriter creates new log writer.
-func (a *adapter) NewWriter() error {
-	if w, err := a.wal.NewWriter(); err == nil {
-		a.logWriter = w
-		return err
-	}
-	return nil
-}
-
-// Append appends messages to the log.
-func (a *adapter) Append(data []byte) <-chan error {
-	return a.logWriter.Append(data)
-}
-
-// SignalInitWrite signals to write log.
-func (a *adapter) SignalInitWrite(seq uint64) <-chan error {
-	return a.logWriter.SignalInitWrite(seq)
-}
-
-// SignalLogApplied signals log has been applied for given upper sequence.
-// logs are released from wal so that space can be reused.
-func (a *adapter) SignalLogApplied(seq uint64) error {
-	return a.wal.SignalLogApplied(seq)
-}
-
 // Recovery recovers pending messages from log file.
-func (a *adapter) Recovery(path string, size int64, reset bool) (map[uint64][]byte, error) {
+func (a *adapter) Recovery(reset bool) (map[uint64][]byte, error) {
 	m := make(map[uint64][]byte) // map[key]msg
-	logOpts := wal.Options{Path: path + "/" + defaultMessageStore + logPostfix, TargetSize: size, BufferSize: size, Reset: reset}
+	logOpts := wal.Options{Path: a.config.Dir + "/" + defaultMessageStore + logPostfix, TargetSize: a.config.Size, BufferSize: a.config.Size, Reset: reset}
 	wal, needLogRecovery, err := wal.New(logOpts)
 	if err != nil {
 		wal.Close()
@@ -257,6 +303,53 @@ func (a *adapter) Recovery(path string, size int64, reset bool) (map[uint64][]by
 	return m, err
 }
 
+// Write write tiny batch to log file
+func (a *adapter) Write() error {
+	if a.tinyBatch.count() == 0 {
+		return nil
+	}
+
+	logWriter, err := a.wal.NewWriter()
+	if err != nil {
+		return err
+	}
+	// commit writes batches into write ahead log. The write happen synchronously.
+	a.writeLockC <- struct{}{}
+	defer func() {
+		a.tinyBatch.buffer.Reset()
+		<-a.writeLockC
+	}()
+	offset := uint32(0)
+	buf := a.tinyBatch.buffer.Bytes()
+	for i := uint32(0); i < a.tinyBatch.count(); i++ {
+		dataLen := binary.LittleEndian.Uint32(buf[offset : offset+4])
+		data := buf[offset+4 : offset+dataLen]
+		if err := <-logWriter.Append(data); err != nil {
+			return err
+		}
+		offset += dataLen
+	}
+
+	if err := <-logWriter.SignalInitWrite(timeNow()); err != nil {
+		return err
+	}
+	a.tinyBatch.reset()
+	// signal log applied for older messages those are either acknowledged or timed out.
+	return a.wal.SignalLogApplied(timeSeq(a.config.dur))
+}
+
+func timeNow() uint64 {
+	return uint64(time.Now().UTC().Round(time.Millisecond).Unix())
+}
+
+func timeSeq(dur time.Duration) uint64 {
+	return uint64(time.Now().UTC().Truncate(dur).Round(time.Millisecond).Unix())
+}
+
 func init() {
-	store.RegisterAdapter(adapterName, &adapter{})
+	adp := &adapter{
+		writeLockC: make(chan struct{}),
+		tinyBatch:  &tinyBatch{},
+	}
+	store.RegisterAdapter(adapterName, adp)
 }

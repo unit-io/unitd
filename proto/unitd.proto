@@ -123,6 +123,7 @@ message Puback {
 //Qoth the spec:"It is the second Packet of the QoS level 2 protocol flow. A PUBREC Packet is sent by the server in response to a PUBLISH Packet from a publishing client, or by a subscriber in response to a PUBLISH Packet from the server."
 message Pubrec {
 	uint32 MessageID=1;
+	uint32 Qos=2;
 }
 
 //Pubrel is a response to pubrec from either the client or server.

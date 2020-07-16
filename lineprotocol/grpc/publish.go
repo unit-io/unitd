@@ -45,6 +45,7 @@ func encodePubrec(p lp.Pubrec) (bytes.Buffer, error) {
 	var msg bytes.Buffer
 	pubrec := pbx.Pubrec{
 		MessageID: uint32(p.MessageID),
+		Qos:       uint32(p.Qos),
 	}
 	pkt, err := proto.Marshal(&pubrec)
 	if err != nil {
@@ -60,6 +61,7 @@ func encodePubrel(p lp.Pubrel) (bytes.Buffer, error) {
 	var msg bytes.Buffer
 	pubrel := pbx.Pubrel{
 		MessageID: uint32(p.MessageID),
+		Qos:       uint32(p.Qos),
 	}
 	pkt, err := proto.Marshal(&pubrel)
 	if err != nil {
@@ -113,8 +115,13 @@ func unpackPuback(data []byte) lp.Packet {
 func unpackPubrec(data []byte) lp.Packet {
 	var pkt pbx.Pubrec
 	proto.Unmarshal(data, &pkt)
+
+	fh := lp.FixedHeader{
+		Qos: uint8(pkt.Qos),
+	}
 	return &lp.Pubrec{
-		MessageID: uint16(pkt.MessageID),
+		FixedHeader: fh,
+		MessageID:   uint16(pkt.MessageID),
 	}
 }
 

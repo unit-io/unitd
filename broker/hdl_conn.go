@@ -144,12 +144,22 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		}
 
 	case lp.PUBREC:
-		c.send <- pkt
+		packet := *pkt.(*lp.Pubrec)
+		pubrel := &lp.Pubrel{
+			FixedHeader: lp.FixedHeader{
+				Qos: packet.Qos,
+			},
+			MessageID: packet.MessageID,
+		}
+		c.send <- pubrel
 
 	case lp.PUBREL:
 		// persist outbound
 		c.storeOutbound(pkt)
-		c.send <- pkt
+
+		packet := *pkt.(*lp.Pubrel)
+		pubcomp := &lp.Pubcomp{MessageID: packet.MessageID}
+		c.send <- pubcomp
 
 	case lp.PUBCOMP:
 	}
