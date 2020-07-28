@@ -268,7 +268,7 @@ func (p *Pubrec) Type() uint8 {
 
 // Info returns Qos and MessageID of this packet.
 func (p *Pubrec) Info() Info {
-	return Info{Qos: 0, MessageID: p.MessageID}
+	return Info{Qos: p.Qos, MessageID: p.MessageID}
 }
 
 // Type returns the MQTT Packet type.

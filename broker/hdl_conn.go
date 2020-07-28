@@ -256,6 +256,9 @@ func (c *Conn) onSubscribe(pkt lp.Subscribe, msgTopic []byte) *types.Error {
 		}
 	}
 
+	// persist outbound
+	c.storeOutbound(&pkt)
+
 	c.subscribe(pkt, topic)
 
 	// if t0, t1, limit, ok := topic.Last(); ok {
@@ -292,6 +295,9 @@ func (c *Conn) onUnsubscribe(pkt lp.Unsubscribe, msgTopic []byte) *types.Error {
 			return err
 		}
 	}
+
+	// persist outbound
+	c.storeOutbound(&pkt)
 
 	c.unsubscribe(pkt, topic)
 
@@ -330,6 +336,10 @@ func (c *Conn) onPublish(pkt lp.Publish, messageID uint16, msgTopic []byte, payl
 		log.Error("conn.onPublish", "store message "+err.Error())
 		return types.ErrServerError
 	}
+
+	// persist outbound
+	c.storeOutbound(&pkt)
+
 	// Iterate through all subscribers and send them the message
 	c.publish(pkt, messageID, topic, payload)
 
@@ -341,7 +351,12 @@ func (c *Conn) onPublish(pkt lp.Publish, messageID uint16, msgTopic []byte, payl
 func (c *Conn) ack(pkt lp.Publish) *types.Error {
 	switch pkt.FixedHeader.Qos {
 	case 2:
-		pubrec := &lp.Pubrec{MessageID: pkt.MessageID}
+		pubrec := &lp.Pubrec{
+			FixedHeader: lp.FixedHeader{
+				Qos: pkt.Qos,
+			},
+			MessageID: pkt.MessageID,
+		}
 		c.send <- pubrec
 	case 1:
 		puback := &lp.Puback{MessageID: pkt.MessageID}

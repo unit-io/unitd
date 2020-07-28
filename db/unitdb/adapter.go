@@ -135,14 +135,16 @@ func (a *adapter) GetName() string {
 
 // Put appends the messages to the store.
 func (a *adapter) Put(contract uint32, topic, payload []byte) error {
-	err := a.db.PutEntry(unitdb.NewEntry(topic).WithPayload(payload).WithContract(contract))
-	return err
+	entry := unitdb.NewEntry(topic, payload)
+	entry.WithContract(contract)
+	return a.db.PutEntry(entry)
 }
 
 // PutWithID appends the messages to the store using a pre generated messageId.
 func (a *adapter) PutWithID(contract uint32, messageId, topic, payload []byte) error {
-	err := a.db.PutEntry(unitdb.NewEntry(topic).WithID(messageId).WithPayload(payload).WithContract(contract))
-	return err
+	entry := unitdb.NewEntry(topic, payload)
+	entry.WithContract(contract)
+	return a.db.PutEntry(entry.WithID(messageId))
 }
 
 // Get performs a query and attempts to fetch last n messages where
@@ -150,11 +152,9 @@ func (a *adapter) PutWithID(contract uint32, messageId, topic, payload []byte) e
 // for time-series retrieval.
 func (a *adapter) Get(contract uint32, topic []byte) (matches [][]byte, err error) {
 	// Iterating over key/value pairs.
-	matches, err = a.db.Get(unitdb.NewQuery(topic).WithContract(contract))
-	if err != nil {
-		return nil, err
-	}
-	return matches, nil
+	query := unitdb.NewQuery(topic)
+	query.WithContract(contract)
+	return a.db.Get(query)
 }
 
 // NewID generates a new messageId.
@@ -168,8 +168,9 @@ func (a *adapter) NewID() ([]byte, error) {
 
 // Put appends the messages to the store.
 func (a *adapter) Delete(contract uint32, messageId, topic []byte) error {
-	err := a.db.DeleteEntry(unitdb.NewEntry(topic).WithID(messageId).WithContract(contract))
-	return err
+	entry := unitdb.NewEntry(topic, nil)
+	entry.WithContract(contract)
+	return a.db.DeleteEntry(entry.WithID(messageId))
 }
 
 type (

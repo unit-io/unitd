@@ -88,7 +88,6 @@ func unpackSuback(data []byte, fh FixedHeader) lp.Packet {
 	msgID := readUint16(data, &bookmark)
 	var qoses []uint8
 	maxlen := uint32(len(data))
-	//is this efficient
 	for bookmark < maxlen {
 		qos := data[bookmark]
 		bookmark++
@@ -107,10 +106,7 @@ func unpackUnsubscribe(data []byte, fh FixedHeader) lp.Packet {
 	maxlen := uint32(len(data))
 	for bookmark < maxlen {
 		var t lp.TopicQOSTuple
-		//		qos := data[bookmark]
-		//		bookmark++
 		t.Topic = readString(data, &bookmark)
-		//		t.qos = uint8(qos)
 		topics = append(topics, t)
 	}
 	return &lp.Unsubscribe{

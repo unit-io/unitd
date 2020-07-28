@@ -3,6 +3,7 @@ package broker
 import (
 	"encoding/binary"
 	"encoding/json"
+	"fmt"
 	"net"
 	"runtime/debug"
 	"strconv"
@@ -227,13 +228,14 @@ func (c *Conn) publish(msg lp.Publish, messageID uint16, topic *security.Topic, 
 		Payload:   payload,
 	}
 	for _, connid := range conns {
-		m.Qos = connid[0]
+		qos := connid[0]
 		lid := uid.LID(binary.LittleEndian.Uint32(connid[1:5]))
 		sub := Globals.ConnCache.Get(lid)
 		if sub != nil {
-			if m.Qos != 0 && m.MessageID == 0 {
+			if qos != 0 && m.MessageID == 0 {
 				mID := c.MessageIds.NextID(lp.PUBLISH)
 				m.MessageID = c.outboundID(mID)
+				m.Qos = qos
 			}
 			if !sub.SendMessage(m) {
 				log.ErrLogger.Err(err).Str("context", "conn.publish")
@@ -287,15 +289,19 @@ func (c *Conn) outboundID(mid message.MID) (id uint16) {
 
 func (c *Conn) storeInbound(m lp.Packet) {
 	if c.clientid != nil {
-		k := uint64(c.inboundID(m.Info().MessageID))<<32 + uint64(c.clientid.Contract())
-		store.Log.PersistInbound(c.proto, k, m)
+		blockId := uint64(c.clientid.Contract())
+		k := uint64(c.inboundID(m.Info().MessageID))<<32 + blockId
+		fmt.Println("inbound: type, key, qos", m.Type(), k, m.Info().Qos)
+		store.Log.PersistInbound(c.proto, blockId, k, m)
 	}
 }
 
 func (c *Conn) storeOutbound(m lp.Packet) {
 	if c.clientid != nil {
-		k := uint64(m.Info().MessageID)<<32 + uint64(c.clientid.Contract())
-		store.Log.PersistOutbound(c.proto, k, m)
+		blockId := uint64(c.clientid.Contract())
+		k := uint64(c.inboundID(m.Info().MessageID))<<32 + blockId
+		fmt.Println("inbound: type, key, qos", m.Type(), k, m.Info().Qos)
+		store.Log.PersistOutbound(c.proto, blockId, k, m)
 	}
 }
 
