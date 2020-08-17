@@ -278,7 +278,7 @@ func (a *adapter) Recovery(reset bool) (map[uint64][]byte, error) {
 	if err != nil {
 		return m, err
 	}
-	err = r.Read(func(lSeq uint64, last bool) (ok bool, err error) {
+	err = r.Read(func(last bool) (ok bool, err error) {
 		l := r.Count()
 		for i := uint32(0); i < l; i++ {
 			logData, ok, err := r.Next()
@@ -304,7 +304,7 @@ func (a *adapter) Recovery(reset bool) (map[uint64][]byte, error) {
 	return m, err
 }
 
-// Write write tiny batch to log file
+// Write writes tiny batch to log file
 func (a *adapter) Write() error {
 	if a.tinyBatch.count() == 0 {
 		return nil
@@ -331,20 +331,20 @@ func (a *adapter) Write() error {
 		offset += dataLen
 	}
 
-	if err := <-logWriter.SignalInitWrite(timeNow()); err != nil {
+	if err := <-logWriter.SignalInitWrite(nextTimeID(a.config.dur)); err != nil {
 		return err
 	}
 	a.tinyBatch.reset()
 	// signal log applied for older messages those are either acknowledged or timed out.
-	return a.wal.SignalLogApplied(timeSeq(a.config.dur))
+	return a.wal.SignalLogApplied(timeID(a.config.dur))
 }
 
-func timeNow() uint64 {
-	return uint64(time.Now().UTC().Round(time.Millisecond).Unix())
+func timeID(dur time.Duration) int64 {
+	return time.Now().UTC().Truncate(dur).Round(time.Millisecond).Unix()
 }
 
-func timeSeq(dur time.Duration) uint64 {
-	return uint64(time.Now().UTC().Truncate(dur).Round(time.Millisecond).Unix())
+func nextTimeID(dur time.Duration) int64 {
+	return time.Now().UTC().Truncate(dur).Add(dur).Round(time.Millisecond).Unix()
 }
 
 func init() {
