@@ -12,8 +12,8 @@ func encodeSubscribe(s lp.Subscribe) (bytes.Buffer, error) {
 	var msg bytes.Buffer
 	var subs []*pbx.Subscriber
 	for _, t := range s.Subscriptions {
-		var sub *pbx.Subscriber
-		sub.Topic = t.Topic
+		sub := &pbx.Subscriber{}
+		copy(sub.Topic, t.Topic)
 		sub.Qos = uint32(t.Qos)
 		subs = append(subs, sub)
 	}
@@ -54,9 +54,9 @@ func encodeSuback(s lp.Suback) (bytes.Buffer, error) {
 func encodeUnsubscribe(u lp.Unsubscribe) (bytes.Buffer, error) {
 	var msg bytes.Buffer
 	var subs []*pbx.Subscriber
-	for _, t := range u.Topics {
-		var sub *pbx.Subscriber
-		sub.Topic = t.Topic
+	for _, t := range u.Subscriptions {
+		sub := &pbx.Subscriber{}
+		copy(sub.Topic, t.Topic)
 		sub.Qos = uint32(t.Qos)
 		subs = append(subs, sub)
 	}
@@ -126,12 +126,11 @@ func unpackUnsubscribe(data []byte) lp.Packet {
 	for _, sub := range pkt.Subscribers {
 		var t lp.TopicQOSTuple
 		t.Topic = sub.Topic
-		t.Qos = uint8(sub.Qos)
 		topics = append(topics, t)
 	}
 	return &lp.Unsubscribe{
-		MessageID: uint16(pkt.MessageID),
-		Topics:    topics,
+		MessageID:     uint16(pkt.MessageID),
+		Subscriptions: topics,
 	}
 }
 

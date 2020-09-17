@@ -120,7 +120,7 @@ func (c *Conn) handler(pkt lp.Packet) error {
 		ack := &lp.Unsuback{MessageID: packet.MessageID}
 
 		// Unsubscribe from each subscription
-		for _, sub := range packet.Topics {
+		for _, sub := range packet.Subscriptions {
 			if err := c.onUnsubscribe(packet, sub.Topic); err != nil {
 				status = err.Status
 				c.notifyError(err, packet.MessageID)
@@ -244,7 +244,7 @@ func (c *Conn) onSubscribe(pkt lp.Subscribe, msgTopic []byte) *types.Error {
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onSubscribe").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
-	//Parse Key
+	//Parse the key
 	topic := security.ParseKey(msgTopic)
 	if topic.TopicType == security.TopicInvalid {
 		return types.ErrBadRequest
@@ -309,7 +309,7 @@ func (c *Conn) onPublish(pkt lp.Publish, messageID uint16, msgTopic []byte, payl
 	start := time.Now()
 	defer log.ErrLogger.Debug().Str("context", "conn.onPublish").Int64("duration", time.Since(start).Nanoseconds()).Msg("")
 
-	//Parse the Key
+	//Parse the key
 	topic := security.ParseKey(msgTopic)
 	if topic.TopicType == security.TopicInvalid {
 		return types.ErrBadRequest

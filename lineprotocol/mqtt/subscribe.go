@@ -11,9 +11,9 @@ func encodeSubscribe(s lp.Subscribe) (bytes.Buffer, error) {
 
 	//msg.Write(reserveForHeader)
 	msg.Write(encodeUint16(s.MessageID))
-	for _, t := range s.Subscriptions {
-		msg.Write(encodeBytes(t.Topic))
-		msg.WriteByte(byte(t.Qos))
+	for _, sub := range s.Subscriptions {
+		msg.Write(encodeBytes(sub.Topic))
+		msg.WriteByte(byte(sub.Qos))
 	}
 
 	// Write to the underlying buffer
@@ -44,8 +44,8 @@ func encodeUnsubscribe(u lp.Unsubscribe) (bytes.Buffer, error) {
 
 	//msg.Write(reserveForHeader)
 	msg.Write(encodeUint16(u.MessageID))
-	for _, toptup := range u.Topics {
-		msg.Write(encodeBytes(toptup.Topic))
+	for _, sub := range u.Subscriptions {
+		msg.Write(encodeBytes(sub.Topic))
 	}
 
 	// Write to the underlying buffer
@@ -110,9 +110,9 @@ func unpackUnsubscribe(data []byte, fh FixedHeader) lp.Packet {
 		topics = append(topics, t)
 	}
 	return &lp.Unsubscribe{
-		FixedHeader: lp.FixedHeader(fh),
-		MessageID:   msgID,
-		Topics:      topics,
+		FixedHeader:   lp.FixedHeader(fh),
+		MessageID:     msgID,
+		Subscriptions: topics,
 	}
 }
 

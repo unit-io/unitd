@@ -86,6 +86,7 @@ func ParseKey(text []byte) (topic *Topic) {
 	if parts == nil || len(parts) < 2 {
 		// topic.TopicType = TopicInvalid
 		topic.Topic = parts[0]
+		topic.Size = len(parts[0])
 		return topic
 	}
 	topic.Key = parts[0]

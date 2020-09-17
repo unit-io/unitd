@@ -164,9 +164,9 @@ type Suback struct {
 //Unsubscribe is the Packet to send if you don't want to subscribe to a topic anymore
 type Unsubscribe struct {
 	FixedHeader
-	MessageID   uint16
-	IsForwarded bool
-	Topics      []TopicQOSTuple
+	MessageID     uint16
+	IsForwarded   bool
+	Subscriptions []TopicQOSTuple
 
 	Packet
 }

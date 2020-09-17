@@ -4,7 +4,6 @@ import (
 	"sync"
 )
 
-// Various constant parts of the SSID.
 const (
 	CONNECT = uint8(iota + 1)
 	PUBLISH
@@ -16,7 +15,6 @@ const (
 
 	fixed = 16
 
-	// system   = uint32(0)
 	Contract = uint32(3376684800)
 )
 

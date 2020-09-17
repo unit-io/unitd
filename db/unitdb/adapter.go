@@ -83,7 +83,7 @@ func (a *adapter) Open(jsonconfig string) error {
 		return err
 	}
 	// Attempt to open the memdb
-	a.mem, err = memdb.Open(config.Size)
+	a.mem, err = memdb.Open(config.Size, &memdb.Options{MaxElapsedTime: 2 * time.Second})
 	if err != nil {
 		return err
 	}
@@ -278,7 +278,7 @@ func (a *adapter) Recovery(reset bool) (map[uint64][]byte, error) {
 	if err != nil {
 		return m, err
 	}
-	err = r.Read(func(last bool) (ok bool, err error) {
+	err = r.Read(func(timeID int64) (ok bool, err error) {
 		l := r.Count()
 		for i := uint32(0); i < l; i++ {
 			logData, ok, err := r.Next()
